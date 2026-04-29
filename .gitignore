@@ -1,0 +1,32 @@
+# Personal financial data — never commit
+revolut.csv
+*.csv
+/data/
+*.dump
+*.sql.gz
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+bootstrap.token
+
+# Future build / runtime artifacts
+node_modules/
+.next/
+dist/
+build/
+out/
+.turbo/
+coverage/
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Claude Code local artifacts
+.claude/
