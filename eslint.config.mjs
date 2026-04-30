@@ -5,19 +5,31 @@ const config = [
   ...nextCoreWebVitals,
   ...nextTypescript,
   {
+    // Generic rules — apply everywhere.
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/consistent-type-imports": "error",
+    },
+  },
+  {
+    // Domain-layer guardrail: forbid next/* imports inside src/lib/**.
+    // Route handlers (src/app/**) and middleware are allowed to use next/*.
+    // The cookies adapter at src/lib/auth/cookies.ts is the deliberate
+    // framework seam — explicitly excused below.
+    files: ["src/lib/**/*.ts"],
+    ignores: ["src/lib/auth/cookies.ts"],
+    rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
             {
               group: ["next/*"],
-              message: "Reserved — only allowed in src/app/** and src/middleware.ts",
+              message:
+                "Domain layer must stay framework-free. Allowed in src/app/**, src/middleware.ts, and src/lib/auth/cookies.ts only.",
             },
           ],
         },
