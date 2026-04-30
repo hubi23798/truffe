@@ -22,7 +22,9 @@
     "bootstrap:issue": "tsx scripts/issue-bootstrap.ts"
   },
   "dependencies": {
+    "drizzle-orm": "^0.45.2",
     "next": "^16.2.4",
+    "postgres": "^3.4.9",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "zod": "^4.4.1"
@@ -35,6 +37,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "^4.1.5",
     "autoprefixer": "^10.5.0",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.4",
     "postcss": "^8.5.12",
