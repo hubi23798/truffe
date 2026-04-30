@@ -1,7 +1,12 @@
 import { cookies } from "next/headers";
 import { env } from "@/env";
 
-const ENROLLMENT_COOKIE = "__Host-enrollment";
+// Cookie names come from env so production can use the spec-strict __Host-
+// prefix (which requires Secure + HTTPS) while dev uses non-__Host- names
+// over plain HTTP. `secure` is conditional on NODE_ENV for the same reason:
+// __Host- without Secure would be silently rejected by the browser, and
+// non-__Host- with Secure would not round-trip on http://localhost in some
+// browsers. Keeping these in lockstep is what makes both modes spec-valid.
 const ENROLLMENT_TTL_S = 10 * 60;
 
 // -- Session cookie ----------------------------------------------------
@@ -39,7 +44,7 @@ export async function readSessionCookie(): Promise<string | undefined> {
 export async function setEnrollmentCookie(value: string) {
   const cookieStore = await cookies();
   cookieStore.set({
-    name: ENROLLMENT_COOKIE,
+    name: env().ENROLLMENT_COOKIE_NAME,
     value,
     httpOnly: true,
     secure: env().NODE_ENV === "production",
@@ -51,10 +56,10 @@ export async function setEnrollmentCookie(value: string) {
 
 export async function readEnrollmentCookie(): Promise<string | undefined> {
   const cookieStore = await cookies();
-  return cookieStore.get(ENROLLMENT_COOKIE)?.value;
+  return cookieStore.get(env().ENROLLMENT_COOKIE_NAME)?.value;
 }
 
 export async function clearEnrollmentCookie() {
   const cookieStore = await cookies();
-  cookieStore.delete(ENROLLMENT_COOKIE);
+  cookieStore.delete(env().ENROLLMENT_COOKIE_NAME);
 }
