@@ -1,8 +1,42 @@
+@import "tailwindcss";
+
+/* Class-based dark mode: dark: variant fires when an ancestor (or self) has .dark */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Light/dark token values live as raw HSL components on :root and .dark, so
+ * Tailwind utilities derived from @theme inline (below) resolve at runtime
+ * via CSS custom properties — no rebuild needed to switch themes.
+ */
 :root {
   color-scheme: light dark;
+  --color-surface-raw: 0 0% 100%;
+  --color-fg-default-raw: 240 10% 4%;
+  --color-fg-muted-raw: 240 4% 46%;
+  --color-border-subtle-raw: 240 6% 90%;
 }
 
-html,
-body {
-  height: 100%;
+.dark {
+  --color-surface-raw: 240 10% 4%;
+  --color-fg-default-raw: 0 0% 98%;
+  --color-fg-muted-raw: 240 5% 65%;
+  --color-border-subtle-raw: 240 4% 16%;
+}
+
+@theme inline {
+  --color-surface: hsl(var(--color-surface-raw));
+  --color-fg-default: hsl(var(--color-fg-default-raw));
+  --color-fg-muted: hsl(var(--color-fg-muted-raw));
+  --color-border-subtle: hsl(var(--color-border-subtle-raw));
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-surface text-fg-default antialiased;
+  }
 }
