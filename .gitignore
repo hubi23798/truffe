@@ -22,6 +22,7 @@ out/
 .turbo/
 coverage/
 .DS_Store
+tsconfig.tsbuildinfo
 
 # Editor
 .vscode/
