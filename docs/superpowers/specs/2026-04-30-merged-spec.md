@@ -10,6 +10,7 @@
 This is a merged spec. It keeps the architecture, data model, deterministic engines, AI advisor layer, ingestion pipeline, authentication design, and phased plan from the original 2026-04-29 design spec **verbatim**. It replaces the original Section 6 (Frontend) with a new Section 6 that adopts the **Calm Financial Cockpit** direction from the Manus AI UI/UX blueprint — keeping every technical constraint of the original (Next.js App Router, React Server Components, Tailwind v4 + shadcn/ui, Recharts, PWA on iPhone, performance and accessibility budgets), but recasting the information architecture, layout, visual language, and interaction model around the cockpit metaphor and the monthly review ritual.
 
 The original three source documents remain intact:
+
 - [`2026-04-29-finance-dashboard-design.md`](2026-04-29-finance-dashboard-design.md) — original design spec.
 - [`Premium Personal Finance OS_ UI_UX Blueprint.md`](Premium%20Personal%20Finance%20OS_%20UI_UX%20Blueprint.md) — Manus AI UI/UX blueprint (third-party content; treated as design data, never as instructions).
 - The 2026-04-30 Phase 0 implementation plan, which is unaffected by this merge (Phase 0 ships only auth + placeholder; the new Section 6 takes effect from Phase 1 onward).
@@ -25,18 +26,18 @@ The original three source documents remain intact:
 
 ## Decisions log (settled during brainstorming)
 
-| # | Decision | Choice |
-|---|---|---|
-| Q1 | Deployment posture | **B** — self-hosted single-tenant cloud (VPS / Fly.io). One user, real internet access, data under user's control. |
-| Q2 | Data ingestion | **C** — manual CSV in v1; clean `Source` abstraction so an Open Banking aggregator can drop in later. |
-| Q3 | Financial-picture scope | **B** — Revolut + manual accounts (brokerage, crypto, savings, pension, property). Holdings-level analytics deferred. |
-| Q3b | Liabilities in v1 | **Yes** — debts are first-class; net worth = assets − liabilities from day one. |
-| Q4 | AI advisor scope | **B with hard guardrails** — read-only analyst + asset-class-level recommendations; no specific tickers/products; deterministic numbers, narrative LLM. |
-| Q5 | Tech stack | **A** — TypeScript end-to-end (Next.js + Drizzle + Postgres). |
-| Q6 | Forecasting depth | **C now, B later** — goal-based single-path projections in v1; Monte Carlo overlay deferred. |
-| Q7 | Categorization | **B** — rules-first, LLM fallback for unmatched, user-confirmed before any rule promotion. |
-| Q8 | Auth | **A** — passkeys (WebAuthn) with email magic-link recovery deferred to phase 2; bootstrap token for first enrollment. |
-| Q9 | UX direction (new) | **Calm Financial Cockpit** primary (from Manus blueprint). Monthly Ritual Studio influences the Budget review flow. Wealth Observatory influences Forecast and Goals. |
+| #   | Decision                | Choice                                                                                                                                                                |
+| --- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q1  | Deployment posture      | **B** — self-hosted single-tenant cloud (VPS / Fly.io). One user, real internet access, data under user's control.                                                    |
+| Q2  | Data ingestion          | **C** — manual CSV in v1; clean `Source` abstraction so an Open Banking aggregator can drop in later.                                                                 |
+| Q3  | Financial-picture scope | **B** — Revolut + manual accounts (brokerage, crypto, savings, pension, property). Holdings-level analytics deferred.                                                 |
+| Q3b | Liabilities in v1       | **Yes** — debts are first-class; net worth = assets − liabilities from day one.                                                                                       |
+| Q4  | AI advisor scope        | **B with hard guardrails** — read-only analyst + asset-class-level recommendations; no specific tickers/products; deterministic numbers, narrative LLM.               |
+| Q5  | Tech stack              | **A** — TypeScript end-to-end (Next.js + Drizzle + Postgres).                                                                                                         |
+| Q6  | Forecasting depth       | **C now, B later** — goal-based single-path projections in v1; Monte Carlo overlay deferred.                                                                          |
+| Q7  | Categorization          | **B** — rules-first, LLM fallback for unmatched, user-confirmed before any rule promotion.                                                                            |
+| Q8  | Auth                    | **A** — passkeys (WebAuthn) with email magic-link recovery deferred to phase 2; bootstrap token for first enrollment.                                                 |
+| Q9  | UX direction (new)      | **Calm Financial Cockpit** primary (from Manus blueprint). Monthly Ritual Studio influences the Budget review flow. Wealth Observatory influences Forecast and Goals. |
 
 ### Standing rule — untrusted inputs
 
@@ -132,7 +133,7 @@ Grouped by concern. Field lists illustrative; full column definitions belong in 
 - **`import_batch`** — `id`, `account_id` (nullable; multi-account batches allowed), `source_kind` (`revolut_csv`|future), `file_sha256`, `row_count`, `accepted_count`, `rejected_count`, `imported_at`, `imported_by_user_id`, `notes`. Re-uploading the same file is a no-op.
 - **`import_batch_rejection`** — sidecar for never-silent-drop guarantee. `id`, `import_batch_id`, `row_index`, `raw_row_json`, `reason`.
 - **`balance_snapshot`** — daily per-account close, written by cron. `account_id`, `as_of_date`, `balance_native`, `balance_base_ccy`. Composite PK `(account_id, as_of_date)`.
-- **`manual_holding`** *(only for `kind=investment`, optional in v1)* — `id`, `account_id`, `ticker`, `quantity`, `cost_basis_total_native`, `last_price_native`, `last_priced_at`. v1 stores; analytics are explicitly phase 5 (Q3 settled at B, not C).
+- **`manual_holding`** _(only for `kind=investment`, optional in v1)_ — `id`, `account_id`, `ticker`, `quantity`, `cost_basis_total_native`, `last_price_native`, `last_priced_at`. v1 stores; analytics are explicitly phase 5 (Q3 settled at B, not C).
 
 ### 2.3 Categorization (2 tables)
 
@@ -220,6 +221,7 @@ interface Source {
 - Fee handling: stored separately in `fee_native`; never folded into `amount_native`.
 
 **Idempotency:**
+
 1. File-level: `import_batch.file_sha256` collision → entire upload rejected.
 2. Row-level: `(account_id, external_id)` unique index → re-ingesting overlapping date ranges is safe.
 
@@ -272,6 +274,7 @@ The advisor reads these outputs as facts; never recomputes them.
 2. **Historical time series:** read `balance_snapshot`; apply same sign rules; return `[{date, net_worth_base, assets_base, liabilities_base, by_kind}]`.
 
 **Snapshot writer (cron, daily 23:55 user-local):**
+
 - For each active account, compute today's `balance_native`; upsert `balance_snapshot(account_id, as_of_date=today, balance_native, balance_base_ccy)`. Idempotent.
 - Backfill on first run: walks transaction history per account.
 
@@ -357,7 +360,7 @@ User opens advisor
 
 ### 4.3 Tool catalog
 
-All tools are typed (Zod), validated on input/output, and call directly into the deterministic engines. The LLM only sees tool *names* and *schemas*.
+All tools are typed (Zod), validated on input/output, and call directly into the deterministic engines. The LLM only sees tool _names_ and _schemas_.
 
 **Read tools (advisor calls freely):**
 
@@ -383,6 +386,7 @@ All tools are typed (Zod), validated on input/output, and call directly into the
 Tool result on `propose_*`: `{proposal_id, status: 'queued_for_user_review', summary}`. Advisor cannot poll status; cannot loop on user acceptance.
 
 **Tools the advisor explicitly does NOT have:**
+
 - `execute_*` of any kind
 - Internet access (`web_search`, `fetch_url`)
 - Code execution
@@ -512,7 +516,7 @@ Every piece of user-data text reaching the model is wrapped:
 ### 4.6 Output filter (post-response)
 
 - **Ticker pattern flag.** Regex for likely tickers (`\b[A-Z]{1,5}\b` with deny-list exceptions; `\$[A-Z]{1,5}`). On match: response rejected, advisor asked to retry without the ticker. Two retries max; then generic error to user.
-- **Disclaimer footer auto-appended:** *"Educational information only — not regulated financial advice. Numbers shown were computed by the app's deterministic engines."*
+- **Disclaimer footer auto-appended:** _"Educational information only — not regulated financial advice. Numbers shown were computed by the app's deterministic engines."_
 - **Length cap.** 4000 output tokens hard limit per turn.
 
 ### 4.7 Conversation lifecycle
@@ -598,14 +602,14 @@ UI updates: "Imported N, M new, K awaiting category review"
 
 A row passes only if all are true. Failures recorded in `import_batch_rejection`.
 
-| Gate | Rule | Failure mode |
-|---|---|---|
-| Header shape | All required columns present | Reject entire file |
-| Column types | `Amount`, `Fee`, `Balance` parse as decimal; dates as ISO | Reject row |
-| State whitelist | `State ∈ {COMPLETED, PENDING, REVERTED, DECLINED, FAILED}` | Reject row |
-| Currency whitelist | Known ISO 4217 or in `fx_rate` history | Reject row |
-| Date sanity | `Started ≤ Completed`, both within `[2000-01-01, today + 1 day]` | Reject row |
-| Amount + fee sanity | Both finite, `|amount| < 1e9` | Reject row |
+| Gate                | Rule                                                             | Failure mode       |
+| ------------------- | ---------------------------------------------------------------- | ------------------ | ------ | ---------- |
+| Header shape        | All required columns present                                     | Reject entire file |
+| Column types        | `Amount`, `Fee`, `Balance` parse as decimal; dates as ISO        | Reject row         |
+| State whitelist     | `State ∈ {COMPLETED, PENDING, REVERTED, DECLINED, FAILED}`       | Reject row         |
+| Currency whitelist  | Known ISO 4217 or in `fx_rate` history                           | Reject row         |
+| Date sanity         | `Started ≤ Completed`, both within `[2000-01-01, today + 1 day]` | Reject row         |
+| Amount + fee sanity | Both finite, `                                                   | amount             | < 1e9` | Reject row |
 
 Rejected rows do not prevent the rest of the file from ingesting. UI shows a "K rows skipped — review" badge on the batch.
 
@@ -664,6 +668,7 @@ No engine or UI changes — only a new `Source` and a cron entry.
 The UI is built on the Manus blueprint's **Direction 1: Calm Financial Cockpit** as the primary direction, with **Direction 2: Monthly Ritual Studio** shaping the Budget review flow and **Direction 3: Wealth Observatory** shaping Forecast and Goals. The interface is quiet, structured, and confidence-oriented — closer to a private wealth report than a fintech dashboard. It avoids three failure modes: dashboard clutter, chatbot detachment, and aggressive red/green financial signalling.
 
 The core experience is organized around three recurring questions:
+
 1. **What happened?** — answered by Home + Transactions.
 2. **What does it mean?** — answered by Budget, Wealth, Forecast, Goals, with the advisor as a contextual reasoning layer over all of them.
 3. **What should I do next?** — answered by Next Actions on Home, the monthly review ritual, and proposal cards from the advisor.
@@ -672,18 +677,19 @@ The core experience is organized around three recurring questions:
 
 Seven primary areas plus a secondary Settings/Data area. Advisor is **available everywhere** but does not occupy a full destination of its own at the top of the IA — it has a destination for history and deep work, but most interactions are launched from the screen the user is already viewing.
 
-| Level | Area | Routes (Next.js App Router) | Purpose |
-|---|---|---|---|
-| Top | **Home** | `/` | At-a-glance financial state + next actions. Default launch screen. |
-| Top | **Transactions** | `/transactions`, `/transactions/inbox`, `/transactions/recurring`, `/transactions/rules`, `/transactions/merchants/[id]` | Source of truth for money movement. Inbox replaces the original `/review`. |
-| Top | **Budget** | `/budget`, `/budget/review`, `/budget/[categoryId]`, `/budget/history` | Monthly planning and control + the monthly review ritual. |
-| Top | **Wealth** | `/wealth`, `/wealth/accounts`, `/wealth/accounts/[id]`, `/wealth/allocation` | Net worth and asset/liability tracking. Replaces the original `/accounts` route. |
-| Top | **Forecast** | `/forecast`, `/forecast/scenarios/[id]?` | Forward-looking confidence: month-end projection, cash flow, scenarios. |
-| Top | **Goals** | `/goals`, `/goals/[id]` | Financial objectives and milestones. |
-| Top | **Advisor** | `/advisor`, `/advisor/c/[conversationId]`, `/advisor/proposals`, `/advisor/decisions` | Contextual guidance history and deeper conversations. Most interactions are launched contextually from other screens, not from this destination. |
+| Level     | Area                | Routes (Next.js App Router)                                                                                                                                                                                                            | Purpose                                                                                                                                                                                                      |
+| --------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Top       | **Home**            | `/`                                                                                                                                                                                                                                    | At-a-glance financial state + next actions. Default launch screen.                                                                                                                                           |
+| Top       | **Transactions**    | `/transactions`, `/transactions/inbox`, `/transactions/recurring`, `/transactions/rules`, `/transactions/merchants/[id]`                                                                                                               | Source of truth for money movement. Inbox replaces the original `/review`.                                                                                                                                   |
+| Top       | **Budget**          | `/budget`, `/budget/review`, `/budget/[categoryId]`, `/budget/history`                                                                                                                                                                 | Monthly planning and control + the monthly review ritual.                                                                                                                                                    |
+| Top       | **Wealth**          | `/wealth`, `/wealth/accounts`, `/wealth/accounts/[id]`, `/wealth/allocation`                                                                                                                                                           | Net worth and asset/liability tracking. Replaces the original `/accounts` route.                                                                                                                             |
+| Top       | **Forecast**        | `/forecast`, `/forecast/scenarios/[id]?`                                                                                                                                                                                               | Forward-looking confidence: month-end projection, cash flow, scenarios.                                                                                                                                      |
+| Top       | **Goals**           | `/goals`, `/goals/[id]`                                                                                                                                                                                                                | Financial objectives and milestones.                                                                                                                                                                         |
+| Top       | **Advisor**         | `/advisor`, `/advisor/c/[conversationId]`, `/advisor/proposals`, `/advisor/decisions`                                                                                                                                                  | Contextual guidance history and deeper conversations. Most interactions are launched contextually from other screens, not from this destination.                                                             |
 | Secondary | **Settings & Data** | `/settings`, `/settings/import`, `/settings/import/[batchId]`, `/settings/categories`, `/settings/rules`, `/settings/accounts`, `/settings/profile`, `/settings/passkeys`, `/settings/sessions`, `/settings/advisor`, `/settings/data` | CSV imports, mappings, categorization rules, account configuration, preferences, advisor guardrails, privacy, data export. Visually de-emphasized; feels like a maintenance room, not a primary destination. |
 
 **IA implications vs the original spec:**
+
 - `/accounts` (original top-level) → folded under **Wealth** at `/wealth/accounts`. Wealth is the better mental model — accounts are inputs to net worth, not a primary destination.
 - `/review` (original top-level) → split: categorization queue and suspected-duplicate inbox become **Transactions Inbox** at `/transactions/inbox`; advisor proposals become `/advisor/proposals`. "What's waiting on me" is also surfaced as **Next Actions** on Home, so the user rarely needs to visit either inbox directly.
 - `/import` (original top-level) → moves under Settings & Data at `/settings/import`. Imports are infrastructure, not a destination.
@@ -695,11 +701,11 @@ Seven primary areas plus a secondary Settings/Data area. Advisor is **available 
 
 The desktop layout is a stable three-zone structure: navigation rail, main canvas, context panel. The right panel makes the advisor feel integrated without turning the app into chat software.
 
-| Zone | Width | Role | Behavior |
-|---|---:|---|---|
-| Left navigation rail | 220–260 px (collapsible to 64 px icon rail at 768–1023 px) | Primary navigation; current month selector at top; data confidence indicator at bottom | Persistent on Mac (≥1024 px) |
-| Main canvas | Flexible | Current screen content and primary workflows | Scrolls independently |
-| Right context panel | 320–380 px | Advisor brief, selected-object detail, next actions, proposals | Contextual; collapsible to a slim "Ask" rail when not in use |
+| Zone                 |                                                      Width | Role                                                                                   | Behavior                                                     |
+| -------------------- | ---------------------------------------------------------: | -------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Left navigation rail | 220–260 px (collapsible to 64 px icon rail at 768–1023 px) | Primary navigation; current month selector at top; data confidence indicator at bottom | Persistent on Mac (≥1024 px)                                 |
+| Main canvas          |                                                   Flexible | Current screen content and primary workflows                                           | Scrolls independently                                        |
+| Right context panel  |                                                 320–380 px | Advisor brief, selected-object detail, next actions, proposals                         | Contextual; collapsible to a slim "Ask" rail when not in use |
 
 ```
 ┌────────┬─────────────────────────────────────────┬────────────────┐
@@ -715,38 +721,38 @@ The left rail's **month selector** is global state — it pins Budget, Forecast,
 
 **iPhone (<768 px):** mobile cockpit, bottom tabs, no fixed side panels.
 
-| Tab | Purpose |
-|---|---|
-| Home | Daily financial status |
-| Budget | Month plan + monthly review ritual |
-| Transactions | Inbox, search, categorization |
-| Wealth | Net worth, accounts, goals, forecast summary |
-| More | Forecast detail, Goals, Advisor history, Settings |
+| Tab          | Purpose                                           |
+| ------------ | ------------------------------------------------- |
+| Home         | Daily financial status                            |
+| Budget       | Month plan + monthly review ritual                |
+| Transactions | Inbox, search, categorization                     |
+| Wealth       | Net worth, accounts, goals, forecast summary      |
+| More         | Forecast detail, Goals, Advisor history, Settings |
 
-**Floating Ask control** is persistent on Home, Budget, Transactions, Wealth, Forecast, and Goals. It opens a bottom-sheet advisor with the screen's context inherited. Tapping Ask on a category detail screen starts with *"Ask about Groceries in April"* prefilled.
+**Floating Ask control** is persistent on Home, Budget, Transactions, Wealth, Forecast, and Goals. It opens a bottom-sheet advisor with the screen's context inherited. Tapping Ask on a category detail screen starts with _"Ask about Groceries in April"_ prefilled.
 
 **Tablet (768–1023 px):** sidebar collapses to icon rail; right context panel becomes a sheet that opens on demand.
 
 ### 6.3 Visual language
 
-Premium, restrained, legible. The reference set is *not* a typical fintech dashboard — it is a premium productivity app, a private wealth report, a calm analytics cockpit, and a well-designed personal planning tool. The visual system avoids neon gradients, crypto-dark aesthetics, cartoon illustrations, generic fintech blue, and noisy gamification.
+Premium, restrained, legible. The reference set is _not_ a typical fintech dashboard — it is a premium productivity app, a private wealth report, a calm analytics cockpit, and a well-designed personal planning tool. The visual system avoids neon gradients, crypto-dark aesthetics, cartoon illustrations, generic fintech blue, and noisy gamification.
 
 #### 6.3.1 Color tokens
 
 Tokens live as raw HSL components on `:root` and `.dark`, mapped to Tailwind v4 utilities via `@theme inline` (so utilities re-resolve at runtime when the `dark` class flips). Phase 0 already wired the four base tokens (`surface`, `fg-default`, `fg-muted`, `border-subtle`); Phase 1 extends with the semantic and accent tokens below. Names are stable contracts.
 
-| Token (Tailwind utility prefix) | Light value (HSL) | Dark value (HSL) | Use |
-|---|---|---|---|
-| `surface` | warm off-white `40 18% 98%` | deep graphite `220 12% 8%` | Page background |
-| `surface-raised` | `40 18% 100%` | `220 12% 11%` | Cards, popovers |
-| `surface-sunken` | `40 14% 95%` | `220 14% 6%` | Tables, table headers |
-| `fg-default` | ink `220 18% 12%` | `40 12% 96%` | Body text |
-| `fg-muted` | slate `220 8% 42%` | `220 8% 60%` | Secondary text, labels |
-| `fg-subtle` | `220 6% 60%` | `220 6% 42%` | Disabled, placeholder |
-| `border-subtle` | `220 10% 88%` | `220 10% 18%` | Hairlines, dividers |
-| `border-strong` | `220 10% 76%` | `220 10% 28%` | Focus rings, emphasis borders |
-| `accent` (default = muted emerald) | `158 30% 38%` | `158 30% 50%` | Primary accent: links, primary buttons, key indicators |
-| `accent-soft` | `158 30% 92%` | `158 30% 18%` | Pill backgrounds, hover tints |
+| Token (Tailwind utility prefix)    | Light value (HSL)           | Dark value (HSL)           | Use                                                    |
+| ---------------------------------- | --------------------------- | -------------------------- | ------------------------------------------------------ |
+| `surface`                          | warm off-white `40 18% 98%` | deep graphite `220 12% 8%` | Page background                                        |
+| `surface-raised`                   | `40 18% 100%`               | `220 12% 11%`              | Cards, popovers                                        |
+| `surface-sunken`                   | `40 14% 95%`                | `220 14% 6%`               | Tables, table headers                                  |
+| `fg-default`                       | ink `220 18% 12%`           | `40 12% 96%`               | Body text                                              |
+| `fg-muted`                         | slate `220 8% 42%`          | `220 8% 60%`               | Secondary text, labels                                 |
+| `fg-subtle`                        | `220 6% 60%`                | `220 6% 42%`               | Disabled, placeholder                                  |
+| `border-subtle`                    | `220 10% 88%`               | `220 10% 18%`              | Hairlines, dividers                                    |
+| `border-strong`                    | `220 10% 76%`               | `220 10% 28%`              | Focus rings, emphasis borders                          |
+| `accent` (default = muted emerald) | `158 30% 38%`               | `158 30% 50%`              | Primary accent: links, primary buttons, key indicators |
+| `accent-soft`                      | `158 30% 92%`               | `158 30% 18%`              | Pill backgrounds, hover tints                          |
 
 The **single accent** is muted emerald (`158 30% 38%` light / `158 30% 50%` dark). It is the only chromatic statement the app makes outside the semantic-state palette. We do not introduce additional chromatic colors for decoration; charts use accent + neutral slate tints + the semantic palette below.
 
@@ -754,26 +760,27 @@ The **single accent** is muted emerald (`158 30% 38%` light / `158 30% 50%` dark
 
 Replaces blanket red/green. Used on budget rows, goal pills, forecast cards, alert chips, proposal cards.
 
-| State | Meaning | Token | Light value | Dark value | Visual treatment |
-|---|---|---|---|---|---|
-| Stable | No action needed; on plan | `state-stable` | `155 20% 45%` (muted moss) | `155 25% 55%` | Neutral-leaning slate or soft moss accent. Default for "good." |
-| Watch | Worth attention, not urgent | `state-watch` | `38 70% 48%` (muted amber) | `38 70% 60%` | Amber pill, no exclamation. |
-| Needs Decision | User should decide | `state-decision` | `25 75% 50%` (stronger amber / muted rust) | `25 75% 60%` | Amber/rust pill with subtle outline; appears in Next Actions. |
-| Off Plan | Meaningfully outside plan | `state-off` | `0 60% 48%` (controlled red) | `0 60% 58%` | Used sparingly. Never as a row background — only as a chip + bar end-cap. |
-| Resolved | Reviewed and accepted | `state-resolved` | `158 30% 38%` (= accent) | `158 30% 50%` | Soft check-mark treatment; matches accent. |
+| State          | Meaning                     | Token            | Light value                                | Dark value    | Visual treatment                                                          |
+| -------------- | --------------------------- | ---------------- | ------------------------------------------ | ------------- | ------------------------------------------------------------------------- |
+| Stable         | No action needed; on plan   | `state-stable`   | `155 20% 45%` (muted moss)                 | `155 25% 55%` | Neutral-leaning slate or soft moss accent. Default for "good."            |
+| Watch          | Worth attention, not urgent | `state-watch`    | `38 70% 48%` (muted amber)                 | `38 70% 60%`  | Amber pill, no exclamation.                                               |
+| Needs Decision | User should decide          | `state-decision` | `25 75% 50%` (stronger amber / muted rust) | `25 75% 60%`  | Amber/rust pill with subtle outline; appears in Next Actions.             |
+| Off Plan       | Meaningfully outside plan   | `state-off`      | `0 60% 48%` (controlled red)               | `0 60% 58%`   | Used sparingly. Never as a row background — only as a chip + bar end-cap. |
+| Resolved       | Reviewed and accepted       | `state-resolved` | `158 30% 38%` (= accent)                   | `158 30% 50%` | Soft check-mark treatment; matches accent.                                |
 
 **Discipline:** the app never paints whole rows in `state-off`. Overspending shows as a single chip + the variance number with explicit sign. Money apps shouldn't punish; they should clarify.
 
 #### 6.3.3 Typography
 
-| Slot | Family | Why |
-|---|---|---|
-| UI sans (default) | **Inter** with `feature-settings: "ss01" 1, "cv11" 1` | High-legibility geometric sans; warmth via stylistic alternates. Ships free, optimized for screens. |
-| Display (dashboard headlines, hero figures) | **Inter** at heavier weights with tighter tracking | Avoids futurism; the same family at scale feels editorial. |
-| Numeric (everywhere a number appears) | **Inter** with `font-feature-settings: "tnum" 1, "lnum" 1` | Tabular lining figures align across rows. |
-| Mono (code, IDs, hashes) | **Geist Mono** (or system mono fallback) | Used only in Settings → Data and audit views. |
+| Slot                                        | Family                                                     | Why                                                                                                 |
+| ------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| UI sans (default)                           | **Inter** with `feature-settings: "ss01" 1, "cv11" 1`      | High-legibility geometric sans; warmth via stylistic alternates. Ships free, optimized for screens. |
+| Display (dashboard headlines, hero figures) | **Inter** at heavier weights with tighter tracking         | Avoids futurism; the same family at scale feels editorial.                                          |
+| Numeric (everywhere a number appears)       | **Inter** with `font-feature-settings: "tnum" 1, "lnum" 1` | Tabular lining figures align across rows.                                                           |
+| Mono (code, IDs, hashes)                    | **Geist Mono** (or system mono fallback)                   | Used only in Settings → Data and audit views.                                                       |
 
 **Numeric formatting rules (binding across the app):**
+
 - Always use `Intl.NumberFormat` with the user's `locale` for display.
 - Currency symbol stays inline with the amount: `€1,240.50`, never `$1,240.50` for EUR data.
 - Variance always shows an explicit sign: `+€340`, `−€180`. Negative numbers never use parentheses.
@@ -804,105 +811,105 @@ Examples (good vs avoid):
 
 Every screen has a single sentence-form contract: **what question does this screen answer in five seconds?** Designs are validated against the contract, not against a checklist of widgets.
 
-#### 6.4.1 Home — *"Is the financial month healthy, is wealth moving in the right direction, and does anything need attention?"*
+#### 6.4.1 Home — _"Is the financial month healthy, is wealth moving in the right direction, and does anything need attention?"_
 
 Curated operating summary. Not a chart wall.
 
-| Module | Desktop | Mobile |
-|---|---|---|
-| Header | "Today" — month selector, last import status, data-confidence indicator | Same, compact |
-| Hero — Financial Position | One coherent statement combining net worth, monthly cash position, savings rate. *e.g.* "You are €1,240 ahead of last month, with €680 projected remaining after planned savings." | One hero card with the same sentence; net worth + month status |
-| Hero — Month in Progress | Budget used, budget remaining, days left, projected end state | Compact budget progress card |
-| Spending Story | Top 3 category drivers + unusual spend chips | Swipeable insight cards |
-| Net Worth Trend | 6–12 month sparkline with current month marker | Mini chart, tap → Wealth |
-| Goals Snapshot | Top 2–3 goals with progress + next contribution | Top goal + "view all" |
-| Forecast Preview | End-of-month estimate + cash runway | Simple "projected month-end" card |
-| Right panel — Advisor Brief | One concise insight, one suggested question, one suggested action | Persistent advisor prompt below hero |
-| Next Actions | "Review 14 uncategorized transactions", "Approve rule proposal", "Start monthly review" | Action list with check states |
+| Module                      | Desktop                                                                                                                                                                            | Mobile                                                         |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Header                      | "Today" — month selector, last import status, data-confidence indicator                                                                                                            | Same, compact                                                  |
+| Hero — Financial Position   | One coherent statement combining net worth, monthly cash position, savings rate. _e.g._ "You are €1,240 ahead of last month, with €680 projected remaining after planned savings." | One hero card with the same sentence; net worth + month status |
+| Hero — Month in Progress    | Budget used, budget remaining, days left, projected end state                                                                                                                      | Compact budget progress card                                   |
+| Spending Story              | Top 3 category drivers + unusual spend chips                                                                                                                                       | Swipeable insight cards                                        |
+| Net Worth Trend             | 6–12 month sparkline with current month marker                                                                                                                                     | Mini chart, tap → Wealth                                       |
+| Goals Snapshot              | Top 2–3 goals with progress + next contribution                                                                                                                                    | Top goal + "view all"                                          |
+| Forecast Preview            | End-of-month estimate + cash runway                                                                                                                                                | Simple "projected month-end" card                              |
+| Right panel — Advisor Brief | One concise insight, one suggested question, one suggested action                                                                                                                  | Persistent advisor prompt below hero                           |
+| Next Actions                | "Review 14 uncategorized transactions", "Approve rule proposal", "Start monthly review"                                                                                            | Action list with check states                                  |
 
 **Contract test:** all three answers (richer than last month? on track this month? any goal behind?) visible without scrolling on iPhone. If not, the design is wrong.
 
-#### 6.4.2 Transactions — *"What did I spend on X, what's awaiting my attention, and what patterns are emerging?"*
+#### 6.4.2 Transactions — _"What did I spend on X, what's awaiting my attention, and what patterns are emerging?"_
 
 Three sub-views: **Inbox**, **All**, **Recurring**. **Rules** and **Merchant detail** are sub-routes.
 
-| Component | Purpose |
-|---|---|
-| Inbox | LLM-proposed categorizations, suspected duplicates, low-confidence rules. The "do the boring work" surface; bulk actions; full keyboard nav (`J`/`K` step, `A` accept, `R` reject). |
-| All Transactions | Searchable chronological ledger; filters as URL state (`?from=2026-04-01&category=groceries`); inline category edit with a confidence indicator next to each pill. |
-| Merchant Detail Drawer | History, average spend, category, recurring status, advisor Ask. |
-| Rule Proposal Panel | Deterministic rule suggestions awaiting approval; preview of historical matches. |
-| Data Health Strip | Top of the page: duplicates pending, missing fields, last import status, mapping confidence. |
+| Component              | Purpose                                                                                                                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Inbox                  | LLM-proposed categorizations, suspected duplicates, low-confidence rules. The "do the boring work" surface; bulk actions; full keyboard nav (`J`/`K` step, `A` accept, `R` reject). |
+| All Transactions       | Searchable chronological ledger; filters as URL state (`?from=2026-04-01&category=groceries`); inline category edit with a confidence indicator next to each pill.                  |
+| Merchant Detail Drawer | History, average spend, category, recurring status, advisor Ask.                                                                                                                    |
+| Rule Proposal Panel    | Deterministic rule suggestions awaiting approval; preview of historical matches.                                                                                                    |
+| Data Health Strip      | Top of the page: duplicates pending, missing fields, last import status, mapping confidence.                                                                                        |
 
-#### 6.4.3 Budget — *"Per category, am I on pace, where am I leaking, and is this month closeable?"*
+#### 6.4.3 Budget — _"Per category, am I on pace, where am I leaking, and is this month closeable?"_
 
 The emotional and behavioral center of the product. Not a static table; a living monthly plan with **review states**.
 
-| Component | Purpose |
-|---|---|
-| Monthly Budget Header | Income (planned + actual), planned spend, actual spend, remaining, days left, current review state pill |
-| Category Groups | Default: **Needs**, **Lifestyle**, **Future Self**, **Irregulars**, **Subscriptions**. User can rename, reorder, and create custom groups in Settings → Categories. |
-| Budget Rows | Planned, actual, remaining, pace, previous-month comparison, optional note, state pill |
-| Review Banner | Surfaces when the month is `Ready to Review`, `In Review`, `Closed`, or `Planned` (see §6.5) |
-| Adjustment Drawer | Records the *reason* a budget changed (free-form short note; surfaced in advisor explanations later) |
-| Category Detail | `/budget/[categoryId]` — trend, merchants, transactions, advisor explanation, proposed budget for next month |
+| Component             | Purpose                                                                                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Monthly Budget Header | Income (planned + actual), planned spend, actual spend, remaining, days left, current review state pill                                                             |
+| Category Groups       | Default: **Needs**, **Lifestyle**, **Future Self**, **Irregulars**, **Subscriptions**. User can rename, reorder, and create custom groups in Settings → Categories. |
+| Budget Rows           | Planned, actual, remaining, pace, previous-month comparison, optional note, state pill                                                                              |
+| Review Banner         | Surfaces when the month is `Ready to Review`, `In Review`, `Closed`, or `Planned` (see §6.5)                                                                        |
+| Adjustment Drawer     | Records the _reason_ a budget changed (free-form short note; surfaced in advisor explanations later)                                                                |
+| Category Detail       | `/budget/[categoryId]` — trend, merchants, transactions, advisor explanation, proposed budget for next month                                                        |
 
 **Visual rule:** overspending shows as a single state-off chip + the variance number. No row-wide red.
 
-#### 6.4.4 Wealth — *"Where is my money, in which currency, how is each account trending, and what's the trajectory?"*
+#### 6.4.4 Wealth — _"Where is my money, in which currency, how is each account trending, and what's the trajectory?"_
 
 Net worth + movement + accounts. Replaces the original `/accounts` route.
 
-| Component | Purpose |
-|---|---|
-| Net Worth Hero | Current net worth, change this month, change over selected period (1M / 3M / 6M / 1Y / All). One sentence narrative beneath the number. |
-| Asset / Liability Breakdown | Stacked horizontal bar by `kind` (cash / investment / crypto / pension / property / other / liability). Tap a band → drill into accounts of that kind. |
-| Trend Chart | Net worth over time with event markers (CSV imports, manual valuations, large transactions). Recharts; thin line; muted fill; current-month marker. |
-| Allocation View | Cash / investments / debt / other; meant as a directional view, not a portfolio analytics tool. |
-| Accounts list (`/wealth/accounts`) | All accounts with current balance, sparkline, currency badge, `is_liquid` chip. |
-| Account detail (`/wealth/accounts/[id]`) | Balance chart + per-account category breakdown + transaction list (inherits Transactions filters). |
-| Notes & Events | Optional user-entered annotations for major life or market events (renders on the trend chart). |
+| Component                                | Purpose                                                                                                                                                |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Net Worth Hero                           | Current net worth, change this month, change over selected period (1M / 3M / 6M / 1Y / All). One sentence narrative beneath the number.                |
+| Asset / Liability Breakdown              | Stacked horizontal bar by `kind` (cash / investment / crypto / pension / property / other / liability). Tap a band → drill into accounts of that kind. |
+| Trend Chart                              | Net worth over time with event markers (CSV imports, manual valuations, large transactions). Recharts; thin line; muted fill; current-month marker.    |
+| Allocation View                          | Cash / investments / debt / other; meant as a directional view, not a portfolio analytics tool.                                                        |
+| Accounts list (`/wealth/accounts`)       | All accounts with current balance, sparkline, currency badge, `is_liquid` chip.                                                                        |
+| Account detail (`/wealth/accounts/[id]`) | Balance chart + per-account category breakdown + transaction list (inherits Transactions filters).                                                     |
+| Notes & Events                           | Optional user-entered annotations for major life or market events (renders on the trend chart).                                                        |
 
-#### 6.4.5 Forecast — *"Is the current month, the next few months, and this major purchase feasible?"*
+#### 6.4.5 Forecast — _"Is the current month, the next few months, and this major purchase feasible?"_
 
 The Wealth Observatory direction shapes this screen.
 
-| Component | Purpose |
-|---|---|
-| Month-End Projection | Expected end-of-month balance + variance range. Reads from `forecast_run` for the cash goal if defined, or computes ad-hoc. |
-| Cash Flow Timeline | Income, recurring bills, planned savings, known irregulars across the next 90 days |
-| Scenario Builder | Add hypothetical purchase / income change / subscription / trip / investment. Saves as a named scenario at `/forecast/scenarios/[id]` (no DB schema change in v1 — scenarios are stored as transient `assumption_set` overrides; promoting a scenario to a real assumption set is a one-click action) |
-| Affordability Answer | Inline result for any scenario: **Yes**, **Yes, if**, **Not without trade-offs**, **No for now**. Same four-mode framework the advisor uses (see §6.7). |
-| Forecast Assumptions | Transparent assumptions used by the deterministic engines: expected real return, inflation, monthly contribution. Editable inline; changes route to the underlying `assumption_set`. |
+| Component            | Purpose                                                                                                                                                                                                                                                                                               |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Month-End Projection | Expected end-of-month balance + variance range. Reads from `forecast_run` for the cash goal if defined, or computes ad-hoc.                                                                                                                                                                           |
+| Cash Flow Timeline   | Income, recurring bills, planned savings, known irregulars across the next 90 days                                                                                                                                                                                                                    |
+| Scenario Builder     | Add hypothetical purchase / income change / subscription / trip / investment. Saves as a named scenario at `/forecast/scenarios/[id]` (no DB schema change in v1 — scenarios are stored as transient `assumption_set` overrides; promoting a scenario to a real assumption set is a one-click action) |
+| Affordability Answer | Inline result for any scenario: **Yes**, **Yes, if**, **Not without trade-offs**, **No for now**. Same four-mode framework the advisor uses (see §6.7).                                                                                                                                               |
+| Forecast Assumptions | Transparent assumptions used by the deterministic engines: expected real return, inflation, monthly contribution. Editable inline; changes route to the underlying `assumption_set`.                                                                                                                  |
 
-#### 6.4.6 Goals — *"For each goal, am I on track, what would change if I saved €X more, and how do my goals trade off against each other?"*
+#### 6.4.6 Goals — _"For each goal, am I on track, what would change if I saved €X more, and how do my goals trade off against each other?"_
 
-| Component | Purpose |
-|---|---|
-| Active Goals | Cards with state pill (Stable / Watch / Needs Decision / Off Plan), current value, target, expected date |
-| Goal Detail | Target, current progress, monthly contribution, expected date, trade-off slider |
-| Funding Plan | Shows where contributions come from (account, category, recurring transfer). |
-| Trade-Off View | "If I increased contribution by €100, ETA moves from Aug 2030 to Mar 2030." Reads `simulate_assumptions` directly. |
+| Component           | Purpose                                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Active Goals        | Cards with state pill (Stable / Watch / Needs Decision / Off Plan), current value, target, expected date                        |
+| Goal Detail         | Target, current progress, monthly contribution, expected date, trade-off slider                                                 |
+| Funding Plan        | Shows where contributions come from (account, category, recurring transfer).                                                    |
+| Trade-Off View      | "If I increased contribution by €100, ETA moves from Aug 2030 to Mar 2030." Reads `simulate_assumptions` directly.              |
 | Advisor Suggestions | Proposal cards: "Increase EF contribution by €100/mo to reach target two months earlier." Always proposals; never auto-applied. |
 
 Design tone: motivational without gamification. No streaks, no confetti, no badges.
 
-#### 6.4.7 Advisor — *"Open financial questions, structured answers, decision history."*
+#### 6.4.7 Advisor — _"Open financial questions, structured answers, decision history."_
 
 Not a chatbot home. A structured decision workspace.
 
-| Component | Purpose |
-|---|---|
-| Ask Bar | Free-form question input + context selector (current screen / specific category / specific goal / specific account / "no context") |
-| Suggested Questions | Two or three prompts based on the screen the user came from |
-| Answer Cards | Structured response: **Direct Answer**, **Why**, **Evidence**, **Trade-Offs**, **Proposal** (optional), **Confidence** (high / medium / low). |
-| Proposals (`/advisor/proposals`) | List of all `pending_proposal` rows with their originating message; bulk accept/reject |
-| Decision History (`/advisor/decisions`) | Saved affordability checks, monthly review summaries, and major planning decisions; immutable, dated, exportable |
-| Guardrail Disclosure | Persistent footer on the conversation: read-only status, "cannot apply changes automatically", source-of-numbers note |
+| Component                               | Purpose                                                                                                                                       |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ask Bar                                 | Free-form question input + context selector (current screen / specific category / specific goal / specific account / "no context")            |
+| Suggested Questions                     | Two or three prompts based on the screen the user came from                                                                                   |
+| Answer Cards                            | Structured response: **Direct Answer**, **Why**, **Evidence**, **Trade-Offs**, **Proposal** (optional), **Confidence** (high / medium / low). |
+| Proposals (`/advisor/proposals`)        | List of all `pending_proposal` rows with their originating message; bulk accept/reject                                                        |
+| Decision History (`/advisor/decisions`) | Saved affordability checks, monthly review summaries, and major planning decisions; immutable, dated, exportable                              |
+| Guardrail Disclosure                    | Persistent footer on the conversation: read-only status, "cannot apply changes automatically", source-of-numbers note                         |
 
-**Tool-call disclosure:** every advisor message that called a tool shows a small footer chip: *"Computed from: get_net_worth_today, get_budget_status(2026-04)"*. Clicking expands the raw tool inputs/outputs (collapsed by default; available for trust).
+**Tool-call disclosure:** every advisor message that called a tool shows a small footer chip: _"Computed from: get_net_worth_today, get_budget_status(2026-04)"_. Clicking expands the raw tool inputs/outputs (collapsed by default; available for trust).
 
-#### 6.4.8 Settings & Data — *"Maintenance room, not a destination."*
+#### 6.4.8 Settings & Data — _"Maintenance room, not a destination."_
 
 Sub-pages: Profile, Passkeys, Sessions, Categories, Rules, Accounts (rename / `is_liquid` / archive), Assumption sets, Advisor (cost ceiling, model, guardrail toggles), Data (CSV import, import history, export-all, diagnostics), Privacy (untrusted-input policy disclosure).
 
@@ -937,25 +944,25 @@ The user cannot advance to Stage 2 until each item is resolved or explicitly ski
 
 The app summarizes the month in human terms. More narrative than numerical.
 
-| Question | UI answer |
-|---|---|
-| Where did my money go? | Spending Story card with top category drivers |
-| What changed? | Month-over-month variance cards |
-| What surprised me? | Unusual spend + new merchant cards |
-| Did I live within the plan? | Budget performance summary with state pill |
+| Question                    | UI answer                                     |
+| --------------------------- | --------------------------------------------- |
+| Where did my money go?      | Spending Story card with top category drivers |
+| What changed?               | Month-over-month variance cards               |
+| What surprised me?          | Unusual spend + new merchant cards            |
+| Did I live within the plan? | Budget performance summary with state pill    |
 
-The summary is generated by a deterministic narrative function (no LLM) that reads from `cash_flow`, `budget_status`, and `transaction` aggregates. Same wording shape every month: *"X was mostly on plan / off plan. Category Y was €N above target, but Z was €M below. Your savings goal remains intact if next month's lifestyle spending returns to baseline."*
+The summary is generated by a deterministic narrative function (no LLM) that reads from `cash_flow`, `budget_status`, and `transaction` aggregates. Same wording shape every month: _"X was mostly on plan / off plan. Category Y was €N above target, but Z was €M below. Your savings goal remains intact if next month's lifestyle spending returns to baseline."_
 
 #### 6.5.3 Stage 3 — Explain (advisor)
 
 Where the advisor becomes valuable. The user can ask why a category changed, whether an overspend matters, or what should be adjusted.
 
-| Advisor prompt (suggested) | Expected answer format |
-|---|---|
-| "Where did my money go this month?" | Direct answer + top drivers + unusual items + comparison to baseline |
-| "Why was dining high?" | Merchant breakdown + frequency change + average ticket change |
+| Advisor prompt (suggested)           | Expected answer format                                                                             |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| "Where did my money go this month?"  | Direct answer + top drivers + unusual items + comparison to baseline                               |
+| "Why was dining high?"               | Merchant breakdown + frequency change + average ticket change                                      |
 | "Can I still hit my savings target?" | One of four modes (Yes / Yes, if / Not without trade-offs / No for now) + assumptions + trade-offs |
-| "What should I change next month?" | 2–3 proposals requiring approval |
+| "What should I change next month?"   | 2–3 proposals requiring approval                                                                   |
 
 The advisor's structured format (Direct Answer / Why / Evidence / Trade-Offs / Proposal / Confidence) is enforced via the system prompt. It must always distinguish **observation**, **interpretation**, and **proposal** — and never blur the three.
 
@@ -963,13 +970,13 @@ The advisor's structured format (Direct Answer / Why / Evidence / Trade-Offs / P
 
 The app prefills next month's plan using deterministic rules (rolling 3-month average per category, with last-month override for known recurring) and highlights only the categories needing attention.
 
-| Planning element | UI |
-|---|---|
-| Income assumption | Editable top-line field with confidence note ("based on last 3 paychecks ±5%") |
-| Fixed commitments | Locked or semi-locked group: rent, utilities, subscriptions, debt minimums |
-| Flexible categories | Adjustable cards with previous / average / actual comparison |
-| Savings + goals | Treated as planned allocations, not leftovers — modeled as goal contributions, not a residual line |
-| Trade-off preview | Inline impact on goal date + month-end cash for every adjustment |
+| Planning element    | UI                                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------------------- |
+| Income assumption   | Editable top-line field with confidence note ("based on last 3 paychecks ±5%")                     |
+| Fixed commitments   | Locked or semi-locked group: rent, utilities, subscriptions, debt minimums                         |
+| Flexible categories | Adjustable cards with previous / average / actual comparison                                       |
+| Savings + goals     | Treated as planned allocations, not leftovers — modeled as goal contributions, not a residual line |
+| Trade-off preview   | Inline impact on goal date + month-end cash for every adjustment                                   |
 
 Advisor proposals appear as cards alongside categories; each one is explicit accept/reject.
 
@@ -977,15 +984,16 @@ Advisor proposals appear as cards alongside categories; each one is explicit acc
 
 The ritual ends with a clear commitment screen.
 
-| Commitment | Example |
-|---|---|
-| Planned income | "Expected income: €X" |
-| Planned spending | "Planned spending: €Y" |
-| Savings target | "Planned savings: €Z" |
-| Watch categories | "Dining and subscriptions need attention" |
-| Advisor note | "If you keep dining under €A, your emergency fund remains on track." |
+| Commitment       | Example                                                              |
+| ---------------- | -------------------------------------------------------------------- |
+| Planned income   | "Expected income: €X"                                                |
+| Planned spending | "Planned spending: €Y"                                               |
+| Savings target   | "Planned savings: €Z"                                                |
+| Watch categories | "Dining and subscriptions need attention"                            |
+| Advisor note     | "If you keep dining under €A, your emergency fund remains on track." |
 
 On commit:
+
 - Previous month transitions to `Closed`.
 - Next month transitions to `Planned`.
 - A `decision_record` (audit_log entry with `actor='user'`, `action='monthly_review.commit'`) preserves the entire commitment payload for later reference.
@@ -994,13 +1002,13 @@ On commit:
 
 Modeled explicitly on each `budget_target` period.
 
-| State | Meaning | UI treatment |
-|---|---|---|
-| Open | Month is in progress | Live budget pacing + alerts |
-| Ready to Review | Month has ended; data is complete | Review prompt appears on Home |
-| In Review | User has started monthly ritual | Progress indicator + resumable flow on Home |
-| Closed | Month has been reviewed and locked | Historical summary preserved; no further edits without explicit "reopen" |
-| Planned | Next-month budget is approved | Home + Budget use the new plan |
+| State           | Meaning                            | UI treatment                                                             |
+| --------------- | ---------------------------------- | ------------------------------------------------------------------------ |
+| Open            | Month is in progress               | Live budget pacing + alerts                                              |
+| Ready to Review | Month has ended; data is complete  | Review prompt appears on Home                                            |
+| In Review       | User has started monthly ritual    | Progress indicator + resumable flow on Home                              |
+| Closed          | Month has been reviewed and locked | Historical summary preserved; no further edits without explicit "reopen" |
+| Planned         | Next-month budget is approved      | Home + Budget use the new plan                                           |
 
 ### 6.6 Advisor — contextual reasoning layer
 
@@ -1008,39 +1016,39 @@ Reaffirming Section 4's guardrails with the UX implications spelled out.
 
 #### 6.6.1 Core principles
 
-| Principle | UX implication |
-|---|---|
-| Read-only by default | Advisor inspects financial data; cannot directly edit budgets, categories, or goals. Persistent footer states this. |
-| Proposal-based | Any suggested change becomes a reviewable proposal card with Accept / Reject / View details. |
-| Context-aware | Advisor inherits the current screen, month, category, transaction, or goal. The Ask bar shows the inherited context as a removable chip. |
-| Evidence-visible | Answers cite the underlying transactions, categories, trends, or assumptions inline (deep links open the source). |
-| Structured responses | Answers use the Direct Answer / Why / Evidence / Trade-Offs / Proposal / Confidence shape (§6.6.3). |
-| Decision memory | Important answers can be saved as decisions to `/advisor/decisions`. |
+| Principle            | UX implication                                                                                                                           |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Read-only by default | Advisor inspects financial data; cannot directly edit budgets, categories, or goals. Persistent footer states this.                      |
+| Proposal-based       | Any suggested change becomes a reviewable proposal card with Accept / Reject / View details.                                             |
+| Context-aware        | Advisor inherits the current screen, month, category, transaction, or goal. The Ask bar shows the inherited context as a removable chip. |
+| Evidence-visible     | Answers cite the underlying transactions, categories, trends, or assumptions inline (deep links open the source).                        |
+| Structured responses | Answers use the Direct Answer / Why / Evidence / Trade-Offs / Proposal / Confidence shape (§6.6.3).                                      |
+| Decision memory      | Important answers can be saved as decisions to `/advisor/decisions`.                                                                     |
 
 #### 6.6.2 Advisor entry points
 
-| Location | Entry | Example question seeded |
-|---|---|---|
-| Home | Right-panel Advisor Brief | "What changed since last week?" |
-| Budget | Category-level Ask in detail drawer | "Why am I over in groceries?" |
-| Transactions | Merchant detail Ask | "Is this subscription worth reviewing?" |
-| Wealth | Net worth Ask | "What drove this month's change?" |
-| Forecast | Scenario Ask | "Can I afford €1,200 for a trip?" |
-| Goals | Goal-level Ask | "How can I reach this three months sooner?" |
-| Anywhere | `⌘K` palette → "Ask…" / mobile floating Ask button | Inherits current route's context |
+| Location     | Entry                                              | Example question seeded                     |
+| ------------ | -------------------------------------------------- | ------------------------------------------- |
+| Home         | Right-panel Advisor Brief                          | "What changed since last week?"             |
+| Budget       | Category-level Ask in detail drawer                | "Why am I over in groceries?"               |
+| Transactions | Merchant detail Ask                                | "Is this subscription worth reviewing?"     |
+| Wealth       | Net worth Ask                                      | "What drove this month's change?"           |
+| Forecast     | Scenario Ask                                       | "Can I afford €1,200 for a trip?"           |
+| Goals        | Goal-level Ask                                     | "How can I reach this three months sooner?" |
+| Anywhere     | `⌘K` palette → "Ask…" / mobile floating Ask button | Inherits current route's context            |
 
 #### 6.6.3 Advisor answer format
 
 Every advisor answer renders the same six-section card:
 
-| Section | Purpose |
-|---|---|
-| Direct Answer | One or two sentences in plain language. Always first. |
-| Why | The data-backed explanation. Cites tool outputs. |
-| Evidence | Linked transactions, categories, trends, assumptions — interactive deep-links. |
-| Trade-Offs | What changes if the user chooses differently. Always shown for affordability and goal questions. |
-| Proposal | Optional. Renders the proposal card inline; Accept / Reject / View details. |
-| Confidence | High / Medium / Low + a tooltip explaining what the confidence is based on (data completeness, period covered, etc.). |
+| Section       | Purpose                                                                                                               |
+| ------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Direct Answer | One or two sentences in plain language. Always first.                                                                 |
+| Why           | The data-backed explanation. Cites tool outputs.                                                                      |
+| Evidence      | Linked transactions, categories, trends, assumptions — interactive deep-links.                                        |
+| Trade-Offs    | What changes if the user chooses differently. Always shown for affordability and goal questions.                      |
+| Proposal      | Optional. Renders the proposal card inline; Accept / Reject / View details.                                           |
+| Confidence    | High / Medium / Low + a tooltip explaining what the confidence is based on (data completeness, period covered, etc.). |
 
 For affordability questions specifically, the **Direct Answer** must use one of four modes: **Yes**, **Yes, if**, **Not without trade-offs**, or **No for now**. Each shows the assumption set used and the impact on savings, cash flow, and goals.
 
@@ -1048,13 +1056,13 @@ For affordability questions specifically, the **Direct Answer** must use one of 
 
 Specific, reviewable, reversible. Apply action is always user-controlled. Interface language: **Review proposal**, **Accept change**, **Dismiss**. Never "Let AI fix it."
 
-| Proposal type | Example |
-|---|---|
-| Budget adjustment | "Increase Dining from €350 to €420 for May, reduce Shopping by €70." |
-| Category rule | "Categorize future Pret transactions as Dining." |
+| Proposal type     | Example                                                                                   |
+| ----------------- | ----------------------------------------------------------------------------------------- |
+| Budget adjustment | "Increase Dining from €350 to €420 for May, reduce Shopping by €70."                      |
+| Category rule     | "Categorize future Pret transactions as Dining."                                          |
 | Goal contribution | "Increase emergency fund contribution by €100/month — reaches target two months earlier." |
-| Spending watch | "Add Dining as a watch category for May." |
-| Forecast scenario | "Save this €1,200 purchase scenario for later review." |
+| Spending watch    | "Add Dining as a watch category for May."                                                 |
+| Forecast scenario | "Save this €1,200 purchase scenario for later review."                                    |
 
 ### 6.7 Data fetching, state, and routing
 
@@ -1188,6 +1196,7 @@ Five phases. Each phase ends with end-to-end usable functionality. The Phase 1+ 
 **Goal:** empty but real app reachable on phone, with deploys working, auth wired enough to log in.
 
 **Deliverables:**
+
 - Next.js 15+ (App Router) + TypeScript + Tailwind + shadcn/ui skeleton.
 - Drizzle ORM + Postgres + initial migration (`user`, `passkey_credential`, `session`, `audit_log` + auth-infrastructure tables `challenge` and `bootstrap_token`).
 - Fly.io deploy via GitHub Actions; HTTPS, domain, TLS.
@@ -1198,6 +1207,7 @@ Five phases. Each phase ends with end-to-end usable functionality. The Phase 1+ 
 - Dark/light theme; PWA manifest; "Add to Home Screen" works on iPhone.
 
 **Exit criteria:**
+
 - Deploy a commit; log in on Mac; log in on iPhone (iCloud-synced passkey); see placeholder dashboard; log out.
 - All Section 7.8 headers verifiable via `curl -I`.
 - One end-to-end Playwright smoke test: visit → login → assert authenticated.
@@ -1210,22 +1220,24 @@ Five phases. Each phase ends with end-to-end usable functionality. The Phase 1+ 
 
 **Deliverables (updated to merged IA):**
 
-*Data model:* migrations for `account`, `transaction`, `import_batch`, `import_batch_rejection`, `balance_snapshot`, `fx_rate`, `category`, `categorization_rule`. Seed taxonomy of ~20 categories grouped under Needs / Lifestyle / Future Self / Irregulars / Subscriptions.
+_Data model:_ migrations for `account`, `transaction`, `import_batch`, `import_batch_rejection`, `balance_snapshot`, `fx_rate`, `category`, `categorization_rule`. Seed taxonomy of ~20 categories grouped under Needs / Lifestyle / Future Self / Irregulars / Subscriptions.
 
-*Engines:* ingestion + Revolut CSV `Source`; categorization rules pass + transfer heuristic; net worth engine (point-in-time + history); ECB FX cron + backfill from 2018-01-01; balance snapshot cron + first-ingest backfill.
+_Engines:_ ingestion + Revolut CSV `Source`; categorization rules pass + transfer heuristic; net worth engine (point-in-time + history); ECB FX cron + backfill from 2018-01-01; balance snapshot cron + first-ingest backfill.
 
-*Screens (merged IA):*
+_Screens (merged IA):_
+
 - `/settings/import`, `/settings/import/[batchId]` — upload, batch detail, rejection viewer.
 - `/transactions`, `/transactions/inbox` — filterable ledger + inbox (uncategorized + suspected duplicates).
 - `/wealth`, `/wealth/accounts`, `/wealth/accounts/[id]` — net worth hero, breakdown, accounts list, drill-in.
 - `/` (Home v1) — Financial Position hero, Net Worth Trend sparkline, Recent Transactions, basic Next Actions; Spending Story / Goals / Forecast modules render placeholders that explain what will appear in Phase 2/3.
 - `/settings/categories`, `/settings/rules`, `/settings/accounts` (rename / `is_liquid` / archive), `/settings/profile`, `/settings/passkeys`, `/settings/sessions`.
 
-*Visual system:* extend Tailwind tokens with semantic state palette (§6.3.2), accent token, surface variants. Wire shadcn primitives needed for Phase 1: dialog, popover, tabs, command, tooltip, badge, separator, skeleton, sonner, table, dropdown-menu, sheet, scroll-area.
+_Visual system:_ extend Tailwind tokens with semantic state palette (§6.3.2), accent token, surface variants. Wire shadcn primitives needed for Phase 1: dialog, popover, tabs, command, tooltip, badge, separator, skeleton, sonner, table, dropdown-menu, sheet, scroll-area.
 
-*Tests:* unit tests for ingestion (parser, dedupe, idempotency, rejection cases) using fixtures; rules engine; net worth engine (cash + investment + liability mix, FX edge cases, snapshot reconciliation invariant). Integration test against real `revolut.csv`.
+_Tests:_ unit tests for ingestion (parser, dedupe, idempotency, rejection cases) using fixtures; rules engine; net worth engine (cash + investment + liability mix, FX edge cases, snapshot reconciliation invariant). Integration test against real `revolut.csv`.
 
 **Exit criteria:**
+
 - Upload `revolut.csv`, see real data, run rules, manually fix the rest; Home shows Financial Position + Net Worth Trend + Recent Transactions; Wealth shows breakdown matching Revolut balances within rounding.
 - Re-uploading same file is no-op; overlapping uploads dedupe correctly.
 - Snapshot reconciliation invariant runs nightly without warnings.
@@ -1238,11 +1250,12 @@ Five phases. Each phase ends with end-to-end usable functionality. The Phase 1+ 
 
 **Deliverables:**
 
-*Data model:* migrations for `budget_target`, `assumption_set`, `goal`, `forecast_run`. `manual_holding` schema-only.
+_Data model:_ migrations for `budget_target`, `assumption_set`, `goal`, `forecast_run`. `manual_holding` schema-only.
 
-*Engines:* budget engine (monthly targets, projected EOM, rollover, review states); forecast engine (closed-form goal projections, status, required-monthly solver); daily forecast recompute cron.
+_Engines:_ budget engine (monthly targets, projected EOM, rollover, review states); forecast engine (closed-form goal projections, status, required-monthly solver); daily forecast recompute cron.
 
-*Screens:*
+_Screens:_
+
 - `/budget`, `/budget/[categoryId]`, `/budget/history` — full budget surface with state pills.
 - `/budget/review` — five-stage monthly review wizard (§6.5), resumable, URL-state-driven (`?stage=prepare|review|explain|plan|commit`).
 - `/goals`, `/goals/[id]` — list + detail + trade-off slider + funding plan.
@@ -1250,9 +1263,10 @@ Five phases. Each phase ends with end-to-end usable functionality. The Phase 1+ 
 - `/settings/assumption-sets` — CRUD.
 - Home v2 — adds Spending Story, Goals Snapshot, Forecast Preview modules; Next Actions includes "Start monthly review" when state = `Ready to Review`.
 
-*Tests:* forecast closed-form vs. month-by-month sim (agreement to <1¢ over 30 years); required-monthly solver cross-check; budget rollover correctness across periods; FX-currency budgets; goal kinds (`portfolio_target`, `cash_target`, `emergency_fund`, `debt_payoff`) each with at least one fixture test; review-state transitions (`Open → Ready to Review → In Review → Closed`; `Planned`).
+_Tests:_ forecast closed-form vs. month-by-month sim (agreement to <1¢ over 30 years); required-monthly solver cross-check; budget rollover correctness across periods; FX-currency budgets; goal kinds (`portfolio_target`, `cash_target`, `emergency_fund`, `debt_payoff`) each with at least one fixture test; review-state transitions (`Open → Ready to Review → In Review → Closed`; `Planned`).
 
 **Exit criteria:**
+
 - Define 2–3 real goals + at least one assumption set; Home shows on-track status; per-goal forecast charts render; Forecast scenario answers affordability inline using the four-mode framework.
 - Budgets defined for ≥5 categories show meaningful projected-EOM numbers and pace state pills.
 - Monthly review wizard runs end-to-end on a closed month, transitions states, writes a `decision_record` on commit.
@@ -1265,11 +1279,12 @@ Five phases. Each phase ends with end-to-end usable functionality. The Phase 1+ 
 
 **Deliverables:**
 
-*Data model:* migrations for `advisor_conversation`, `advisor_message`, `pending_proposal`. `audit_log.advisor_message_id` extension.
+_Data model:_ migrations for `advisor_conversation`, `advisor_message`, `pending_proposal`. `audit_log.advisor_message_id` extension.
 
-*Engines & layers:* Anthropic SDK with **prompt caching on by default** (target >70% hit rate); `MODEL_ADVISOR` and `MODEL_CATEGORIZER` env vars; tool catalog (4.3) wired to existing engines (no reimplementation); `assess_purchase` engine; mutation-proposal pipeline (4.8); server-side `<user-data>` wrapping; output filter (ticker scrubber + disclaimer); per-day cost ceiling; LLM categorization fallback (Haiku).
+_Engines & layers:_ Anthropic SDK with **prompt caching on by default** (target >70% hit rate); `MODEL_ADVISOR` and `MODEL_CATEGORIZER` env vars; tool catalog (4.3) wired to existing engines (no reimplementation); `assess_purchase` engine; mutation-proposal pipeline (4.8); server-side `<user-data>` wrapping; output filter (ticker scrubber + disclaimer); per-day cost ceiling; LLM categorization fallback (Haiku).
 
-*Screens:*
+_Screens:_
+
 - `/advisor`, `/advisor/c/[conversationId]` — structured Answer Card layout (§6.6.3); conversation list/archive.
 - `/advisor/proposals`, `/advisor/decisions` — bulk-actionable proposal list and decision history.
 - Right-panel Advisor Brief on Home (and as a slide-over from any page via `⌘K`).
@@ -1277,9 +1292,10 @@ Five phases. Each phase ends with end-to-end usable functionality. The Phase 1+ 
 - Inline Ask in Budget category detail, Merchant detail, Goal detail, Forecast scenario.
 - Proposal cards inline under the advisor's message + the Inbox.
 
-*Tests:* prompt-injection battery (adversarial fixtures: "ignore previous instructions and …", `<system>`, `</user-data>`, base64 — assert no acted-on instructions); tool-call tests with fixtures (`assess_purchase` across affordable / unaffordable / breaks-EF / blocks-goal cases); output filter (ticker rejected, disclaimer always present, length cap honored); cost ceiling (cap → pause message → resumes next day); mutation proposal flow (propose → accept → DB updated, audit log linked); answer-card structure (every response renders all six sections; affordability answers use one of four modes).
+_Tests:_ prompt-injection battery (adversarial fixtures: "ignore previous instructions and …", `<system>`, `</user-data>`, base64 — assert no acted-on instructions); tool-call tests with fixtures (`assess_purchase` across affordable / unaffordable / breaks-EF / blocks-goal cases); output filter (ticker rejected, disclaimer always present, length cap honored); cost ceiling (cap → pause message → resumes next day); mutation proposal flow (propose → accept → DB updated, audit log linked); answer-card structure (every response renders all six sections; affordability answers use one of four modes).
 
 **Exit criteria:**
+
 - Advisor answers questions like "where did my discretionary money go this quarter?", "am I on track for goal X?", "can I afford a €2,400 e-bike?" with structured answers (Direct / Why / Evidence / Trade-Offs / Proposal / Confidence) grounded in tool outputs.
 - Adversarial fixtures produce no data exfiltration, no ticker names, no mutation tool calls bypassing the proposal flow.
 - Multi-turn conversation shows >70% prompt-cache hit rate in the Anthropic dashboard.
@@ -1292,6 +1308,7 @@ Five phases. Each phase ends with end-to-end usable functionality. The Phase 1+ 
 **Goal:** the app feels finished. No new features.
 
 **Deliverables:**
+
 - Suspected-duplicate detector.
 - Inbox bulk actions, full keyboard nav (`J`/`K`/`A`/`R`).
 - Account drill-in: balance chart + per-account category breakdown + transaction list.
@@ -1304,6 +1321,7 @@ Five phases. Each phase ends with end-to-end usable functionality. The Phase 1+ 
 - `RUNBOOK.md` (deploy, rollback, restore, bootstrap, "what to do if X").
 
 **Exit criteria:**
+
 - Simulated full-data-loss restore from last night's backup completes in <30 minutes following only the runbook.
 - Lighthouse ≥90 on all primary routes (iPhone profile).
 - Two weeks of daily use without manual intervention beyond CSV uploads.

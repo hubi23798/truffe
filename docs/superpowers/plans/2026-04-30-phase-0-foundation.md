@@ -11,6 +11,7 @@
 **Reference spec:** [`docs/superpowers/specs/2026-04-29-finance-dashboard-design.md`](../specs/2026-04-29-finance-dashboard-design.md). When this plan and the spec disagree, the spec wins — flag the divergence and update the plan.
 
 **Phase 0 exit criteria (from spec §8 Phase 0):**
+
 - Deploy a commit; log in on Mac with passkey; log in on iPhone (iCloud-synced passkey); see placeholder dashboard; log out.
 - All §7.8 headers verifiable via `curl -I`.
 - One end-to-end Playwright smoke test: visit → login → assert authenticated.
@@ -102,6 +103,7 @@
 ```
 
 **Boundaries.**
+
 - `src/lib/db/*` is the only module that imports `drizzle-orm` directly. Engines and route handlers depend on a typed repository interface re-exported from there.
 - `src/lib/auth/*` is framework-free (no `next/*` imports). Route handlers in `src/app/api/auth/*` are the only place that bridges between Next.js request/response and these helpers.
 - `src/env.ts` is imported anywhere typed env access is needed. Do not read `process.env.X` directly in app code.
@@ -128,6 +130,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
 ## Task 1: Project bootstrap (package.json, Node, pnpm)
 
 **Files:**
+
 - Create: `package.json`
 - Create: `.nvmrc`
 - Create: `.editorconfig`
@@ -227,6 +230,7 @@ EOF
 ## Task 2: TypeScript + Next.js skeleton
 
 **Files:**
+
 - Create: `tsconfig.json`
 - Create: `next.config.ts`
 - Create: `src/app/layout.tsx`
@@ -317,11 +321,7 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body>{children}</body>
@@ -393,6 +393,7 @@ EOF
 ## Task 3: Tailwind CSS + design tokens
 
 **Files:**
+
 - Create: `tailwind.config.ts`
 - Create: `postcss.config.mjs`
 - Modify: `src/app/globals.css`
@@ -504,6 +505,7 @@ EOF
 ## Task 4: ESLint + Prettier
 
 **Files:**
+
 - Create: `eslint.config.mjs`
 - Create: `.prettierrc`
 - Create: `.prettierignore`
@@ -606,6 +608,7 @@ EOF
 ## Task 5: Vitest setup + first unit test
 
 **Files:**
+
 - Create: `vitest.config.ts`
 - Create: `tests/unit/sanity.test.ts`
 
@@ -677,6 +680,7 @@ EOF
 ## Task 6: Validated environment loader
 
 **Files:**
+
 - Create: `.env.example`
 - Create: `src/env.ts`
 - Create: `tests/unit/env.test.ts`
@@ -819,6 +823,7 @@ EOF
 ## Task 7: Drizzle ORM + database client
 
 **Files:**
+
 - Create: `drizzle.config.ts`
 - Create: `src/lib/db/client.ts`
 - Create: `src/lib/db/schema.ts` (empty stubs filled in Task 8)
@@ -906,6 +911,7 @@ EOF
 ## Task 8: Define Phase-0 schema (`user`, `passkey_credential`, `session`, `audit_log`)
 
 **Files:**
+
 - Modify: `src/lib/db/schema.ts`
 
 - [ ] **Step 1: Replace `src/lib/db/schema.ts`**
@@ -1079,6 +1085,7 @@ docker stop finance-pg
 ## Task 9: Audit log helper
 
 **Files:**
+
 - Create: `src/lib/audit.ts`
 - Create: `tests/unit/audit.test.ts`
 
@@ -1176,6 +1183,7 @@ EOF
 ## Task 10: Challenge store (short-TTL)
 
 **Files:**
+
 - Create: `src/lib/auth/challenges.ts`
 - Create: `tests/unit/challenges.test.ts`
 
@@ -1199,7 +1207,8 @@ describe("challenges", () => {
     const fakeDb = {
       insert: () => ({
         values: (v: Record<string, unknown>) => ({
-          returning: () => Promise.resolve([{ id: "cid", challenge: v.challenge, expiresAt: v.expiresAt }]),
+          returning: () =>
+            Promise.resolve([{ id: "cid", challenge: v.challenge, expiresAt: v.expiresAt }]),
         }),
       }),
     } as never;
@@ -1280,7 +1289,11 @@ export async function issueChallenge(
   const [row] = await db
     .insert(challengeTable)
     .values({ challenge, purpose, expiresAt, userId })
-    .returning({ id: challengeTable.id, challenge: challengeTable.challenge, expiresAt: challengeTable.expiresAt });
+    .returning({
+      id: challengeTable.id,
+      challenge: challengeTable.challenge,
+      expiresAt: challengeTable.expiresAt,
+    });
   if (!row) throw new Error("Failed to issue challenge");
   return { id: row.id, challenge: row.challenge, expiresAt: row.expiresAt };
 }
@@ -1327,6 +1340,7 @@ EOF
 ## Task 11: Session model (create / read / destroy)
 
 **Files:**
+
 - Create: `src/lib/auth/session.ts`
 - Create: `tests/unit/session.test.ts`
 
@@ -1348,7 +1362,10 @@ describe("session ttl", () => {
   });
 
   it("isExpired returns true for sessions past expiresAt", () => {
-    const expired = { expiresAt: new Date(Date.now() - 1000), createdAt: new Date(Date.now() - 1000) };
+    const expired = {
+      expiresAt: new Date(Date.now() - 1000),
+      createdAt: new Date(Date.now() - 1000),
+    };
     expect(isExpired(expired)).toBe(true);
   });
 
@@ -1466,6 +1483,7 @@ EOF
 ## Task 12: Bootstrap token (issue + redeem, single-use)
 
 **Files:**
+
 - Create: `src/lib/auth/bootstrap.ts`
 - Create: `scripts/issue-bootstrap.ts`
 - Create: `tests/unit/bootstrap.test.ts`
@@ -1570,9 +1588,7 @@ async function main() {
   const db = getDb();
   const token = await issueBootstrapToken(db);
   const minutes = Math.round(BOOTSTRAP_TOKEN_TTL_MS / 60_000);
-  process.stdout.write(
-    `Bootstrap token (single-use, expires in ${minutes} min):\n${token}\n`,
-  );
+  process.stdout.write(`Bootstrap token (single-use, expires in ${minutes} min):\n${token}\n`);
   process.exit(0);
 }
 
@@ -1630,6 +1646,7 @@ EOF
 ## Task 13: WebAuthn helpers (registration + authentication wrappers)
 
 **Files:**
+
 - Create: `src/lib/auth/webauthn.ts`
 
 - [ ] **Step 1: Install SimpleWebAuthn**
@@ -1762,6 +1779,7 @@ EOF
 ## Task 14: Bootstrap redemption route + cookie helper
 
 **Files:**
+
 - Create: `src/app/api/auth/bootstrap/route.ts`
 - Create: `src/lib/auth/cookies.ts`
 
@@ -1879,6 +1897,7 @@ EOF
 ## Task 15: Registration routes (options + verify)
 
 **Files:**
+
 - Create: `src/app/api/auth/register/options/route.ts`
 - Create: `src/app/api/auth/register/verify/route.ts`
 
@@ -1949,10 +1968,7 @@ export async function POST(req: Request) {
   if (!consumed || !consumed.userId) {
     return NextResponse.json({ error: "invalid_challenge" }, { status: 401 });
   }
-  const result = await verifyRegistration(
-    parsed.data.response as never,
-    consumed.challenge,
-  );
+  const result = await verifyRegistration(parsed.data.response as never, consumed.challenge);
   if (!result.verified || !result.registrationInfo) {
     return NextResponse.json({ error: "verification_failed" }, { status: 401 });
   }
@@ -1962,8 +1978,9 @@ export async function POST(req: Request) {
     credentialId: reg.credential.id,
     publicKey: Buffer.from(reg.credential.publicKey).toString("base64"),
     signCount: Number(reg.credential.counter ?? 0),
-    transports: (parsed.data.response as { response?: { transports?: string[] } })?.response
-      ?.transports ?? [],
+    transports:
+      (parsed.data.response as { response?: { transports?: string[] } })?.response?.transports ??
+      [],
     nickname: parsed.data.nickname,
   });
   await recordAudit(db, {
@@ -2005,6 +2022,7 @@ EOF
 ## Task 16: Login routes (options + verify) and logout
 
 **Files:**
+
 - Create: `src/app/api/auth/login/options/route.ts`
 - Create: `src/app/api/auth/login/verify/route.ts`
 - Create: `src/app/api/auth/logout/route.ts`
@@ -2147,6 +2165,7 @@ EOF
 ## Task 17: Health endpoint
 
 **Files:**
+
 - Create: `src/app/api/health/route.ts`
 
 - [ ] **Step 1: Implement**
@@ -2192,6 +2211,7 @@ EOF
 ## Task 18: Middleware — security headers + auth gate
 
 **Files:**
+
 - Create: `src/middleware.ts`
 
 - [ ] **Step 1: Implement**
@@ -2226,17 +2246,11 @@ function isPublic(pathname: string): boolean {
 }
 
 function applySecurityHeaders(res: NextResponse): NextResponse {
-  res.headers.set(
-    "Strict-Transport-Security",
-    "max-age=63072000; includeSubDomains; preload",
-  );
+  res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   res.headers.set("X-Frame-Options", "DENY");
-  res.headers.set(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(), payment=()",
-  );
+  res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
   res.headers.set(
     "Content-Security-Policy",
     [
@@ -2280,7 +2294,7 @@ export const config = {
 };
 ```
 
-Note: middleware can only validate the *presence* of the cookie (Edge runtime; no Postgres here). The route handlers re-validate against the DB. This is correct: middleware is a fast gate, the DB lookup happens inside route handlers and Server Components.
+Note: middleware can only validate the _presence_ of the cookie (Edge runtime; no Postgres here). The route handlers re-validate against the DB. This is correct: middleware is a fast gate, the DB lookup happens inside route handlers and Server Components.
 
 - [ ] **Step 2: Verify headers**
 
@@ -2324,6 +2338,7 @@ EOF
 ## Task 19: shadcn/ui init + minimal components
 
 **Files:**
+
 - Create: `components.json`
 - Create: `src/lib/utils.ts`
 - Create: `src/components/ui/button.tsx`
@@ -2406,6 +2421,7 @@ EOF
 ## Task 20: Login + enrollment pages + auth-gated home
 
 **Files:**
+
 - Modify: `src/app/page.tsx`
 - Create: `src/app/login/page.tsx`
 - Create: `src/app/enroll/page.tsx`
@@ -2431,10 +2447,10 @@ export default async function HomePage() {
   if (!sess) redirect("/login");
   return (
     <main className="flex min-h-dvh items-center justify-center p-6">
-      <div className="w-full max-w-md space-y-6 rounded-lg border border-border-subtle p-6">
+      <div className="border-border-subtle w-full max-w-md space-y-6 rounded-lg border p-6">
         <div>
           <h1 className="text-2xl font-semibold">Finance Dashboard</h1>
-          <p className="mt-1 text-sm text-fg-muted">
+          <p className="text-fg-muted mt-1 text-sm">
             Phase 0 — you are signed in. The dashboard arrives in Phase 1.
           </p>
         </div>
@@ -2554,8 +2570,12 @@ export function LoginForm() {
         <Button onClick={onLogin} disabled={busy} className="w-full">
           {busy ? "Authenticating…" : "Sign in with passkey"}
         </Button>
-        <p className="text-sm text-fg-muted">
-          First time? <a className="underline" href="/enroll">Enroll a passkey using a bootstrap token</a>.
+        <p className="text-fg-muted text-sm">
+          First time?{" "}
+          <a className="underline" href="/enroll">
+            Enroll a passkey using a bootstrap token
+          </a>
+          .
         </p>
       </CardContent>
     </Card>
@@ -2703,14 +2723,14 @@ pnpm bootstrap:issue
 Copy the printed token. In the browser:
 
 1. Visit `http://localhost:3000/` → redirected to `/login`.
-2. Click *Enroll a passkey* link → `/enroll`.
-3. Paste the token → click *Continue*.
-4. Click *Create passkey* → complete the WebAuthn ceremony (Touch ID / device PIN).
+2. Click _Enroll a passkey_ link → `/enroll`.
+3. Paste the token → click _Continue_.
+4. Click _Create passkey_ → complete the WebAuthn ceremony (Touch ID / device PIN).
 5. You are redirected to `/` and see the signed-in placeholder.
-6. Click *Sign out* → back to `/login`.
-7. Click *Sign in with passkey* → choose your credential → redirected to `/`.
+6. Click _Sign out_ → back to `/login`.
+7. Click _Sign in with passkey_ → choose your credential → redirected to `/`.
 
-Note: For local dev `__Host-` cookies require HTTPS in production, but the cookie helper in Task 14 sets `secure: true` only in production, so plain HTTP at `localhost` works in dev — the *name* `__Host-session` is fine but the strict prefix rules apply only when `Secure` is set.
+Note: For local dev `__Host-` cookies require HTTPS in production, but the cookie helper in Task 14 sets `secure: true` only in production, so plain HTTP at `localhost` works in dev — the _name_ `__Host-session` is fine but the strict prefix rules apply only when `Secure` is set.
 
 - [ ] **Step 9: Commit**
 
@@ -2729,6 +2749,7 @@ EOF
 ## Task 21: PWA manifest + icons + Apple meta tags
 
 **Files:**
+
 - Create: `public/manifest.webmanifest`
 - Create: `public/robots.txt`
 - Create: `public/icon-192.png`, `public/icon-512.png`, `public/icon-maskable-192.png`, `public/icon-maskable-512.png`, `public/apple-touch-icon.png`, `public/favicon.ico`
@@ -2865,6 +2886,7 @@ EOF
 ## Task 22: Theme provider (light/dark)
 
 **Files:**
+
 - Create: `src/components/theme-provider.tsx`
 - Modify: `src/app/layout.tsx`
 
@@ -2896,9 +2918,7 @@ export function ThemeProvider({ children, ...props }: ComponentProps<typeof Next
 Modify the body of the layout:
 
 ```tsx
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+<ThemeProvider>{children}</ThemeProvider>
 ```
 
 …and add the import: `import { ThemeProvider } from "@/components/theme-provider";`.
@@ -2936,6 +2956,7 @@ EOF
 ## Task 23: Playwright E2E — security headers + smoke test
 
 **Files:**
+
 - Create: `playwright.config.ts`
 - Create: `tests/e2e/headers.spec.ts`
 - Create: `tests/e2e/smoke.spec.ts`
@@ -3057,6 +3078,7 @@ EOF
 ## Task 24: Dockerfile + entrypoint
 
 **Files:**
+
 - Create: `Dockerfile`
 - Create: `.dockerignore`
 - Create: `scripts/docker-entrypoint.sh`
@@ -3185,6 +3207,7 @@ EOF
 ## Task 25: GitHub Actions CI
 
 **Files:**
+
 - Create: `.github/workflows/ci.yml`
 
 - [ ] **Step 1: Create the workflow**
@@ -3271,6 +3294,7 @@ Expected: GitHub Actions runs and the `CI` job goes green. (You will need to pus
 ## Task 26: Fly.io deploy + GitHub Actions deploy job
 
 **Files:**
+
 - Create: `fly.toml`
 - Create: `.github/workflows/deploy.yml`
 
@@ -3418,6 +3442,7 @@ Expected: Deploy workflow runs on push to `main`, deploys the new image, the pro
 ## Task 27: Deployed-environment smoke test
 
 **Files:**
+
 - Modify: `.github/workflows/deploy.yml`
 
 - [ ] **Step 1: Append a post-deploy smoke step**
@@ -3425,23 +3450,23 @@ Expected: Deploy workflow runs on push to `main`, deploys the new image, the pro
 Edit `.github/workflows/deploy.yml`, adding to the `deploy` job after the `flyctl deploy` step:
 
 ```yaml
-      - name: Wait for health
-        run: |
-          for i in $(seq 1 30); do
-            if curl -fsS https://${{ vars.PROD_DOMAIN }}/api/health > /dev/null; then
-              echo "healthy"; exit 0
-            fi
-            sleep 2
-          done
-          echo "Service did not become healthy"; exit 1
-      - name: Verify security headers
-        run: |
-          set -e
-          headers=$(curl -sI https://${{ vars.PROD_DOMAIN }}/api/health)
-          for h in 'strict-transport-security' 'x-content-type-options' 'referrer-policy' 'x-frame-options' 'permissions-policy' 'content-security-policy'; do
-            echo "$headers" | tr 'A-Z' 'a-z' | grep -q "$h: " || { echo "Missing header: $h"; exit 1; }
-          done
-          echo "All security headers present."
+- name: Wait for health
+  run: |
+    for i in $(seq 1 30); do
+      if curl -fsS https://${{ vars.PROD_DOMAIN }}/api/health > /dev/null; then
+        echo "healthy"; exit 0
+      fi
+      sleep 2
+    done
+    echo "Service did not become healthy"; exit 1
+- name: Verify security headers
+  run: |
+    set -e
+    headers=$(curl -sI https://${{ vars.PROD_DOMAIN }}/api/health)
+    for h in 'strict-transport-security' 'x-content-type-options' 'referrer-policy' 'x-frame-options' 'permissions-policy' 'content-security-policy'; do
+      echo "$headers" | tr 'A-Z' 'a-z' | grep -q "$h: " || { echo "Missing header: $h"; exit 1; }
+    done
+    echo "All security headers present."
 ```
 
 - [ ] **Step 2: Add `PROD_DOMAIN` repo variable**

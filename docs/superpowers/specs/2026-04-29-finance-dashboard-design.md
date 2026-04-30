@@ -8,17 +8,17 @@
 
 ## Decisions log (settled during brainstorming)
 
-| # | Decision | Choice |
-|---|---|---|
-| Q1 | Deployment posture | **B** — self-hosted single-tenant cloud (VPS / Fly.io). One user, real internet access, data under user's control. |
-| Q2 | Data ingestion | **C** — manual CSV in v1; clean `Source` abstraction so an Open Banking aggregator can drop in later. |
-| Q3 | Financial-picture scope | **B** — Revolut + manual accounts (brokerage, crypto, savings, pension, property). Holdings-level analytics deferred. |
-| Q3b | Liabilities in v1 | **Yes** — debts are first-class; net worth = assets − liabilities from day one. |
-| Q4 | AI advisor scope | **B with hard guardrails** — read-only analyst + asset-class-level recommendations; no specific tickers/products; deterministic numbers, narrative LLM. |
-| Q5 | Tech stack | **A** — TypeScript end-to-end (Next.js + Drizzle + Postgres). |
-| Q6 | Forecasting depth | **C now, B later** — goal-based single-path projections in v1; Monte Carlo overlay deferred. |
-| Q7 | Categorization | **B** — rules-first, LLM fallback for unmatched, user-confirmed before any rule promotion. |
-| Q8 | Auth | **A** — passkeys (WebAuthn) with email magic-link recovery deferred to phase 2; bootstrap token for first enrollment. |
+| #   | Decision                | Choice                                                                                                                                                  |
+| --- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q1  | Deployment posture      | **B** — self-hosted single-tenant cloud (VPS / Fly.io). One user, real internet access, data under user's control.                                      |
+| Q2  | Data ingestion          | **C** — manual CSV in v1; clean `Source` abstraction so an Open Banking aggregator can drop in later.                                                   |
+| Q3  | Financial-picture scope | **B** — Revolut + manual accounts (brokerage, crypto, savings, pension, property). Holdings-level analytics deferred.                                   |
+| Q3b | Liabilities in v1       | **Yes** — debts are first-class; net worth = assets − liabilities from day one.                                                                         |
+| Q4  | AI advisor scope        | **B with hard guardrails** — read-only analyst + asset-class-level recommendations; no specific tickers/products; deterministic numbers, narrative LLM. |
+| Q5  | Tech stack              | **A** — TypeScript end-to-end (Next.js + Drizzle + Postgres).                                                                                           |
+| Q6  | Forecasting depth       | **C now, B later** — goal-based single-path projections in v1; Monte Carlo overlay deferred.                                                            |
+| Q7  | Categorization          | **B** — rules-first, LLM fallback for unmatched, user-confirmed before any rule promotion.                                                              |
+| Q8  | Auth                    | **A** — passkeys (WebAuthn) with email magic-link recovery deferred to phase 2; bootstrap token for first enrollment.                                   |
 
 ### Standing rule — untrusted inputs
 
@@ -114,7 +114,7 @@ Grouped by concern. Field lists illustrative; full column definitions belong in 
 - **`import_batch`** — `id`, `account_id` (nullable; multi-account batches allowed), `source_kind` (`revolut_csv`|future), `file_sha256`, `row_count`, `accepted_count`, `rejected_count`, `imported_at`, `imported_by_user_id`, `notes`. Re-uploading the same file is a no-op.
 - **`import_batch_rejection`** — sidecar for never-silent-drop guarantee. `id`, `import_batch_id`, `row_index`, `raw_row_json`, `reason`.
 - **`balance_snapshot`** — daily per-account close, written by cron. `account_id`, `as_of_date`, `balance_native`, `balance_base_ccy`. Composite PK `(account_id, as_of_date)`.
-- **`manual_holding`** *(only for `kind=investment`, optional in v1)* — `id`, `account_id`, `ticker`, `quantity`, `cost_basis_total_native`, `last_price_native`, `last_priced_at`. v1 stores; analytics are explicitly phase 5 (Q3 settled at B, not C).
+- **`manual_holding`** _(only for `kind=investment`, optional in v1)_ — `id`, `account_id`, `ticker`, `quantity`, `cost_basis_total_native`, `last_price_native`, `last_priced_at`. v1 stores; analytics are explicitly phase 5 (Q3 settled at B, not C).
 
 ### 2.3 Categorization (2 tables)
 
@@ -202,6 +202,7 @@ interface Source {
 - Fee handling: stored separately in `fee_native`; never folded into `amount_native`.
 
 **Idempotency:**
+
 1. File-level: `import_batch.file_sha256` collision → entire upload rejected.
 2. Row-level: `(account_id, external_id)` unique index → re-ingesting overlapping date ranges is safe.
 
@@ -254,6 +255,7 @@ The advisor reads these outputs as facts; never recomputes them.
 2. **Historical time series:** read `balance_snapshot`; apply same sign rules; return `[{date, net_worth_base, assets_base, liabilities_base, by_kind}]`.
 
 **Snapshot writer (cron, daily 23:55 user-local):**
+
 - For each active account, compute today's `balance_native`; upsert `balance_snapshot(account_id, as_of_date=today, balance_native, balance_base_ccy)`. Idempotent.
 - Backfill on first run: walks transaction history per account.
 
@@ -339,7 +341,7 @@ User opens advisor
 
 ### 4.3 Tool catalog
 
-All tools are typed (Zod), validated on input/output, and call directly into the deterministic engines. The LLM only sees tool *names* and *schemas*.
+All tools are typed (Zod), validated on input/output, and call directly into the deterministic engines. The LLM only sees tool _names_ and _schemas_.
 
 **Read tools (advisor calls freely):**
 
@@ -365,6 +367,7 @@ All tools are typed (Zod), validated on input/output, and call directly into the
 Tool result on `propose_*`: `{proposal_id, status: 'queued_for_user_review', summary}`. Advisor cannot poll status; cannot loop on user acceptance.
 
 **Tools the advisor explicitly does NOT have:**
+
 - `execute_*` of any kind
 - Internet access (`web_search`, `fetch_url`)
 - Code execution
@@ -494,7 +497,7 @@ Every piece of user-data text reaching the model is wrapped:
 ### 4.6 Output filter (post-response)
 
 - **Ticker pattern flag.** Regex for likely tickers (`\b[A-Z]{1,5}\b` with deny-list exceptions; `\$[A-Z]{1,5}`). On match: response rejected, advisor asked to retry without the ticker. Two retries max; then generic error to user.
-- **Disclaimer footer auto-appended:** *"Educational information only — not regulated financial advice. Numbers shown were computed by the app's deterministic engines."*
+- **Disclaimer footer auto-appended:** _"Educational information only — not regulated financial advice. Numbers shown were computed by the app's deterministic engines."_
 - **Length cap.** 4000 output tokens hard limit per turn.
 
 ### 4.7 Conversation lifecycle
@@ -580,14 +583,14 @@ UI updates: "Imported N, M new, K awaiting category review"
 
 A row passes only if all are true. Failures recorded in `import_batch_rejection`.
 
-| Gate | Rule | Failure mode |
-|---|---|---|
-| Header shape | All required columns present | Reject entire file |
-| Column types | `Amount`, `Fee`, `Balance` parse as decimal; dates as ISO | Reject row |
-| State whitelist | `State ∈ {COMPLETED, PENDING, REVERTED, DECLINED, FAILED}` | Reject row |
-| Currency whitelist | Known ISO 4217 or in `fx_rate` history | Reject row |
-| Date sanity | `Started ≤ Completed`, both within `[2000-01-01, today + 1 day]` | Reject row |
-| Amount + fee sanity | Both finite, `|amount| < 1e9` | Reject row |
+| Gate                | Rule                                                             | Failure mode       |
+| ------------------- | ---------------------------------------------------------------- | ------------------ | ------ | ---------- |
+| Header shape        | All required columns present                                     | Reject entire file |
+| Column types        | `Amount`, `Fee`, `Balance` parse as decimal; dates as ISO        | Reject row         |
+| State whitelist     | `State ∈ {COMPLETED, PENDING, REVERTED, DECLINED, FAILED}`       | Reject row         |
+| Currency whitelist  | Known ISO 4217 or in `fx_rate` history                           | Reject row         |
+| Date sanity         | `Started ≤ Completed`, both within `[2000-01-01, today + 1 day]` | Reject row         |
+| Amount + fee sanity | Both finite, `                                                   | amount             | < 1e9` | Reject row |
 
 Rejected rows do not prevent the rest of the file from ingesting. UI shows a "K rows skipped — review" badge on the batch.
 
@@ -645,17 +648,17 @@ One Next.js App Router app, two device targets, no native code.
 
 ### 6.1 Information architecture
 
-| Route | Purpose |
-|---|---|
+| Route           | Purpose                                                                                    |
+| --------------- | ------------------------------------------------------------------------------------------ |
 | `/` (Dashboard) | Net worth + change, this-month cash flow, top 3 budgets, top 3 goals, recent transactions. |
-| `/accounts` | List of accounts with current balance, sparkline, drill-in. |
-| `/transactions` | Filterable ledger; search, category/date/account filters; bulk recategorize. |
-| `/budget` | Per-category target/actual/projected EOM; create/edit targets; rollover toggle. |
-| `/goals` | Goals list with status pill; per-goal projection chart; edit assumptions. |
-| `/advisor` | Chat. Conversation list (sidebar on Mac, drawer on iPhone). |
-| `/import` | Upload; in-progress batches; recent batches with counts and rejections. |
-| `/review` | Inbox: uncategorized, LLM proposals, advisor proposals, suspected duplicates. |
-| `/settings` | Profile, categories, rules, assumption sets, accounts, sessions/passkeys, export. |
+| `/accounts`     | List of accounts with current balance, sparkline, drill-in.                                |
+| `/transactions` | Filterable ledger; search, category/date/account filters; bulk recategorize.               |
+| `/budget`       | Per-category target/actual/projected EOM; create/edit targets; rollover toggle.            |
+| `/goals`        | Goals list with status pill; per-goal projection chart; edit assumptions.                  |
+| `/advisor`      | Chat. Conversation list (sidebar on Mac, drawer on iPhone).                                |
+| `/import`       | Upload; in-progress batches; recent batches with counts and rejections.                    |
+| `/review`       | Inbox: uncategorized, LLM proposals, advisor proposals, suspected duplicates.              |
+| `/settings`     | Profile, categories, rules, assumption sets, accounts, sessions/passkeys, export.          |
 
 ### 6.2 Layout & navigation
 
@@ -696,14 +699,14 @@ One Next.js App Router app, two device targets, no native code.
 
 ### 6.6 Per-screen "what each must answer"
 
-- **Dashboard:** *Am I richer than last month? Am I overspending this month? Am I behind on any goal?* All three answers visible without scrolling on iPhone.
-- **Accounts:** *Where is my money, in which currency, how is each account trending?*
-- **Transactions:** *What did I spend on X? Anything uncategorized? Show me everything from account Y in March.*
-- **Budget:** *Per category, am I on pace? Where am I leaking?*
-- **Goals:** *For each goal, am I on track? What changes if I save €X more?*
+- **Dashboard:** _Am I richer than last month? Am I overspending this month? Am I behind on any goal?_ All three answers visible without scrolling on iPhone.
+- **Accounts:** _Where is my money, in which currency, how is each account trending?_
+- **Transactions:** _What did I spend on X? Anything uncategorized? Show me everything from account Y in March._
+- **Budget:** _Per category, am I on pace? Where am I leaking?_
+- **Goals:** _For each goal, am I on track? What changes if I save €X more?_
 - **Advisor:** free-form questions in user's actual data. Always shows a "computed from: …" footer for tool calls used.
-- **Review:** *What is waiting on me?* Single inbox.
-- **Import:** *Did my last upload work? What got rejected and why?*
+- **Review:** _What is waiting on me?_ Single inbox.
+- **Import:** _Did my last upload work? What got rejected and why?_
 - **Settings:** profile, accounts (rename / mark `is_liquid` / archive), categories, rules, assumption sets, passkeys, sessions, export-all (JSON dump).
 
 ### 6.7 Performance & accessibility
@@ -807,6 +810,7 @@ Five phases. Each phase ends with end-to-end usable functionality.
 **Goal:** empty but real app reachable on phone, with deploys working, auth wired enough to log in.
 
 **Deliverables:**
+
 - Next.js 15 (App Router) + TypeScript + Tailwind + shadcn/ui skeleton.
 - Drizzle ORM + Postgres + initial migration (`user`, `passkey_credential`, `session`, `audit_log`).
 - Fly.io deploy via GitHub Actions; HTTPS, domain, TLS.
@@ -817,6 +821,7 @@ Five phases. Each phase ends with end-to-end usable functionality.
 - Dark/light theme; PWA manifest; "Add to Home Screen" works on iPhone.
 
 **Exit criteria:**
+
 - Deploy a commit; log in on Mac; log in on iPhone (iCloud-synced passkey); see placeholder dashboard; log out.
 - All Section 7.8 headers verifiable via `curl -I`.
 - One end-to-end Playwright smoke test: visit → login → assert authenticated.
@@ -829,15 +834,16 @@ Five phases. Each phase ends with end-to-end usable functionality.
 
 **Deliverables:**
 
-*Data model:* migrations for `account`, `transaction`, `import_batch`, `import_batch_rejection`, `balance_snapshot`, `fx_rate`, `category`, `categorization_rule`. Seed taxonomy of ~20 categories.
+_Data model:_ migrations for `account`, `transaction`, `import_batch`, `import_batch_rejection`, `balance_snapshot`, `fx_rate`, `category`, `categorization_rule`. Seed taxonomy of ~20 categories.
 
-*Engines:* ingestion + Revolut CSV `Source`; categorization rules pass + transfer heuristic; net worth engine (point-in-time + history); ECB FX cron + backfill from 2018-01-01; balance snapshot cron + first-ingest backfill.
+_Engines:_ ingestion + Revolut CSV `Source`; categorization rules pass + transfer heuristic; net worth engine (point-in-time + history); ECB FX cron + backfill from 2018-01-01; balance snapshot cron + first-ingest backfill.
 
-*Screens:* `/import`, `/transactions`, `/accounts`, `/` (Dashboard v1), `/settings` (categories, rules, account rename / `is_liquid` / archive, profile, passkeys, sessions), `/review` (uncategorized + suspected duplicates).
+_Screens:_ `/import`, `/transactions`, `/accounts`, `/` (Dashboard v1), `/settings` (categories, rules, account rename / `is_liquid` / archive, profile, passkeys, sessions), `/review` (uncategorized + suspected duplicates).
 
-*Tests:* unit tests for ingestion (parser, dedupe, idempotency, rejection cases) using fixtures; rules engine; net worth engine (cash + investment + liability mix, FX edge cases, snapshot reconciliation invariant). Integration test against real `revolut.csv`.
+_Tests:_ unit tests for ingestion (parser, dedupe, idempotency, rejection cases) using fixtures; rules engine; net worth engine (cash + investment + liability mix, FX edge cases, snapshot reconciliation invariant). Integration test against real `revolut.csv`.
 
 **Exit criteria:**
+
 - Upload `revolut.csv`, see real data, run rules, manually fix the rest, see net worth chart matching Revolut balances within rounding.
 - Re-uploading same file is no-op; overlapping uploads dedupe correctly.
 - Snapshot reconciliation invariant runs nightly without warnings.
@@ -850,15 +856,16 @@ Five phases. Each phase ends with end-to-end usable functionality.
 
 **Deliverables:**
 
-*Data model:* migrations for `budget_target`, `assumption_set`, `goal`, `forecast_run`. `manual_holding` schema-only.
+_Data model:_ migrations for `budget_target`, `assumption_set`, `goal`, `forecast_run`. `manual_holding` schema-only.
 
-*Engines:* budget engine (monthly targets, projected EOM, rollover); forecast engine (closed-form goal projections, status, required-monthly solver); daily forecast recompute cron.
+_Engines:_ budget engine (monthly targets, projected EOM, rollover); forecast engine (closed-form goal projections, status, required-monthly solver); daily forecast recompute cron.
 
-*Screens:* `/budget`, `/goals`, `/settings → assumption sets`, Dashboard v2 (top-3 budgets, top-3 goals).
+_Screens:_ `/budget`, `/goals`, `/settings → assumption sets`, Dashboard v2 (top-3 budgets, top-3 goals).
 
-*Tests:* forecast closed-form vs. month-by-month sim (agreement to <1¢ over 30 years); required-monthly solver cross-check; budget rollover correctness across periods; FX-currency budgets; goal kinds (`portfolio_target`, `cash_target`, `emergency_fund`, `debt_payoff`) each with at least one fixture test.
+_Tests:_ forecast closed-form vs. month-by-month sim (agreement to <1¢ over 30 years); required-monthly solver cross-check; budget rollover correctness across periods; FX-currency budgets; goal kinds (`portfolio_target`, `cash_target`, `emergency_fund`, `debt_payoff`) each with at least one fixture test.
 
 **Exit criteria:**
+
 - Define 2–3 real goals + at least one assumption set; dashboard shows on-track status; per-goal forecast charts render; "what-if I save €X more?" works by editing assumption set.
 - Budgets defined for ≥5 categories show meaningful projected-EOM numbers.
 
@@ -870,15 +877,16 @@ Five phases. Each phase ends with end-to-end usable functionality.
 
 **Deliverables:**
 
-*Data model:* migrations for `advisor_conversation`, `advisor_message`, `pending_proposal`. `audit_log.advisor_message_id` extension.
+_Data model:_ migrations for `advisor_conversation`, `advisor_message`, `pending_proposal`. `audit_log.advisor_message_id` extension.
 
-*Engines & layers:* Anthropic SDK with **prompt caching on by default** (target >70% hit rate); `MODEL_ADVISOR` and `MODEL_CATEGORIZER` env vars; tool catalog (4.3) wired to existing engines (no reimplementation); `assess_purchase` engine; mutation-proposal pipeline (4.8); server-side `<user-data>` wrapping; output filter (ticker scrubber + disclaimer); per-day cost ceiling; LLM categorization fallback (Haiku).
+_Engines & layers:_ Anthropic SDK with **prompt caching on by default** (target >70% hit rate); `MODEL_ADVISOR` and `MODEL_CATEGORIZER` env vars; tool catalog (4.3) wired to existing engines (no reimplementation); `assess_purchase` engine; mutation-proposal pipeline (4.8); server-side `<user-data>` wrapping; output filter (ticker scrubber + disclaimer); per-day cost ceiling; LLM categorization fallback (Haiku).
 
-*Screens:* `/advisor` chat with streaming + tool-call disclosure footer + conversation list/archive; `⌘K` advisor slide-over from any page; review-inbox additions (LLM categorization proposals, advisor mutation proposals); Dashboard v3 advisor entry point.
+_Screens:_ `/advisor` chat with streaming + tool-call disclosure footer + conversation list/archive; `⌘K` advisor slide-over from any page; review-inbox additions (LLM categorization proposals, advisor mutation proposals); Dashboard v3 advisor entry point.
 
-*Tests:* prompt-injection battery (adversarial fixture descriptions: "ignore previous instructions and …", `<system>`, `</user-data>`, base64 — assert no acted-on instructions); tool-call tests with fixtures (assess_purchase across affordable / unaffordable / breaks-EF / blocks-goal cases); output filter (ticker rejected, disclaimer always present, length cap honored); cost ceiling (cap → pause message → resumes next day); mutation proposal flow (propose → accept → DB updated, audit log linked).
+_Tests:_ prompt-injection battery (adversarial fixture descriptions: "ignore previous instructions and …", `<system>`, `</user-data>`, base64 — assert no acted-on instructions); tool-call tests with fixtures (assess_purchase across affordable / unaffordable / breaks-EF / blocks-goal cases); output filter (ticker rejected, disclaimer always present, length cap honored); cost ceiling (cap → pause message → resumes next day); mutation proposal flow (propose → accept → DB updated, audit log linked).
 
 **Exit criteria:**
+
 - Advisor answers questions like "where did my discretionary money go this quarter?", "am I on track for goal X?", "can I afford a €2,400 e-bike?" with coherent answers grounded in tool outputs and trade-offs framed per system prompt.
 - Adversarial fixtures produce no data exfiltration, no ticker names, no mutation tool calls bypassing the proposal flow.
 - Multi-turn conversation shows >70% prompt-cache hit rate in Anthropic dashboard.
@@ -891,6 +899,7 @@ Five phases. Each phase ends with end-to-end usable functionality.
 **Goal:** the app feels finished. No new features.
 
 **Deliverables:**
+
 - Suspected-duplicate detector.
 - Bulk actions in review queue, full keyboard nav.
 - Account drill-in: balance chart + per-account category breakdown + transaction list.
@@ -902,6 +911,7 @@ Five phases. Each phase ends with end-to-end usable functionality.
 - `RUNBOOK.md` (deploy, rollback, restore, bootstrap, "what to do if X").
 
 **Exit criteria:**
+
 - Simulated full-data-loss restore from last night's backup completes in <30 minutes following only the runbook.
 - Lighthouse ≥90 on all primary routes (iPhone profile).
 - Two weeks of daily use without manual intervention beyond CSV uploads.
