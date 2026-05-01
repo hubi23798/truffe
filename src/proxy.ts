@@ -16,9 +16,10 @@ const PUBLIC_PATHS = [
   "/api/auth/register/verify",
   "/api/auth/login/options",
   "/api/auth/login/verify",
-  // Logout is intentionally NOT public: hitting it without a session is a
-  // no-op (returns 200 either way), but we want session-bearing requests
-  // only so that the audit log accurately attributes the action.
+  // Logout is public so a client with an expired/missing session can still
+  // call it to clean up the cookie. The route handler is idempotent and
+  // only audits when an actual session exists, so attribution stays sound.
+  "/api/auth/logout",
   "/manifest.webmanifest",
   "/icon-192.png",
   "/icon-512.png",
@@ -67,6 +68,15 @@ function applySecurityHeaders(res: NextResponse): NextResponse {
 }
 
 // -- Proxy (Next 16 — formerly "middleware") ---------------------------
+//
+// On a missing session we differentiate API vs page requests:
+//  - /api/* → 401 JSON. Method-preserving redirects on a POST/PUT/DELETE
+//    would re-issue the request body to /login (which doesn't accept it).
+//    APIs should signal "not authenticated" with a status code, not a
+//    page redirect, so the client can react appropriately.
+//  - everything else → 303 See Other to /login?from=<path>. 303 forces
+//    the browser to follow with GET regardless of the original method,
+//    avoiding 307's method-preservation footgun.
 
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -78,10 +88,13 @@ export function proxy(req: NextRequest) {
   }
 
   if (!sessionId) {
+    if (pathname.startsWith("/api/")) {
+      return applySecurityHeaders(NextResponse.json({ error: "unauthenticated" }, { status: 401 }));
+    }
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("from", pathname);
-    return applySecurityHeaders(NextResponse.redirect(url));
+    return applySecurityHeaders(NextResponse.redirect(url, 303));
   }
 
   return applySecurityHeaders(NextResponse.next());
