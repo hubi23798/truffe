@@ -1,0 +1,15 @@
+node_modules
+.next
+.env*
+!.env.example
+revolut.csv
+*.csv
+.git
+.github
+.vscode
+.idea
+tests
+playwright-report
+test-results
+coverage
+docs
