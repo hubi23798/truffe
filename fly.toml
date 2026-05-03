@@ -1,0 +1,55 @@
+# Fly.io app configuration for boink!
+#
+# Operator setup (one-time, before first deploy):
+#   1. brew install flyctl && flyctl auth login
+#   2. flyctl apps create boink --org personal
+#      (if "boink" is taken globally, pick another name and update
+#       `app` below + the --app flag in .github/workflows/deploy.yml)
+#   3. flyctl postgres create --name boink-pg --region fra \
+#        --vm-size shared-cpu-1x --initial-cluster-size 1 --volume-size 1
+#   4. flyctl postgres attach boink-pg --app boink
+#      (sets DATABASE_URL secret automatically)
+#   5. flyctl secrets set --app boink \
+#        RP_ID=<YOUR_DOMAIN> \
+#        RP_NAME='boink!' \
+#        ORIGIN=https://<YOUR_DOMAIN> \
+#        SESSION_COOKIE_NAME=__Host-session \
+#        ENROLLMENT_COOKIE_NAME=__Host-enrollment \
+#        RUN_MIGRATIONS=1
+#      (NODE_ENV=production is set automatically by Next; cookies.ts
+#       flips secure=true when NODE_ENV=production, satisfying the
+#       __Host- prefix requirements over HTTPS)
+#   6. flyctl deploy --app boink   (first manual deploy)
+#   7. flyctl tokens create deploy --app boink --name github-actions
+#      then add the token as a GitHub repo secret named FLY_API_TOKEN
+#      and the prod domain as a repo variable named PROD_DOMAIN
+
+app = "boink"
+primary_region = "fra"
+
+[build]
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    hard_limit = 200
+    soft_limit = 100
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
