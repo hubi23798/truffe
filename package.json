@@ -17,9 +17,9 @@
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest",
     "test:e2e": "playwright test",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "bootstrap:issue": "tsx scripts/issue-bootstrap.ts"
+    "db:generate": "dotenv -e .env -- drizzle-kit generate",
+    "db:migrate": "dotenv -e .env -- drizzle-kit migrate",
+    "bootstrap:issue": "tsx --env-file=.env scripts/issue-bootstrap.ts"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.3.0",
@@ -46,6 +46,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "^4.1.5",
     "autoprefixer": "^10.5.0",
+    "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.4",

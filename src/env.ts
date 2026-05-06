@@ -1,7 +1,15 @@
 import { z } from "zod";
 
 const schema = z.object({
-  DATABASE_URL: z.string().url().or(z.string().startsWith("postgres://")),
+  // Postgres connection string. Accepts the canonical postgresql:// scheme
+  // (used by Supabase: postgresql://postgres:[password]@db.[ref].supabase.co:5432/postgres)
+  // and the legacy postgres:// scheme.
+  DATABASE_URL: z
+    .string()
+    .min(1)
+    .refine((v) => v.startsWith("postgres://") || v.startsWith("postgresql://"), {
+      message: "DATABASE_URL must use postgres:// or postgresql:// scheme",
+    }),
   RP_ID: z.string().min(1),
   RP_NAME: z.string().min(1),
   ORIGIN: z.string().url(),
