@@ -1,45 +1,41 @@
 "use client";
 
-import { startAuthentication } from "@simplewebauthn/browser";
 import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 /**
- * Discoverable-credential login. /api/auth/login/options returns the
- * WebAuthn challenge; the browser picks a passkey via
- * navigator.credentials.get; /api/auth/login/verify validates the
- * assertion, mints a session, sets the session cookie. On success,
- * hard-navigate to / so the new cookie hits the proxy.
+ * Single-user email + password login. POSTs to /api/auth/login, which
+ * validates against ADMIN_EMAIL / ADMIN_PASSWORD (env vars), mints a
+ * session, sets the cookie. On success, hard-navigate to / so the new
+ * cookie hits the proxy.
  */
 export function LoginForm() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function onLogin() {
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
     setError(null);
     setBusy(true);
     try {
-      const optsRes = await fetch("/api/auth/login/options", { method: "POST" });
-      if (!optsRes.ok) throw new Error("Failed to start login");
-      const { options, challengeId } = (await optsRes.json()) as {
-        options: Parameters<typeof startAuthentication>[0]["optionsJSON"];
-        challengeId: string;
-      };
-      const response = await startAuthentication({ optionsJSON: options });
-      const verifyRes = await fetch("/api/auth/login/verify", {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ challengeId, response }),
+        body: JSON.stringify({ email, password }),
       });
-      if (!verifyRes.ok) {
-        const body = (await verifyRes.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? "Login failed");
       }
       window.location.href = "/";
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Unknown error");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setBusy(false);
     }
@@ -50,23 +46,42 @@ export function LoginForm() {
       <CardHeader>
         <CardTitle>Sign in to boink!</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {error ? (
-          <Alert variant="destructive">
-            <AlertTitle>Sign-in error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : null}
-        <Button onClick={onLogin} disabled={busy} className="w-full">
-          {busy ? "Authenticating…" : "Sign in with passkey"}
-        </Button>
-        <p className="text-fg-muted text-sm">
-          First time?{" "}
-          <a className="underline" href="/enroll">
-            Enroll a passkey using a bootstrap token
-          </a>
-          .
-        </p>
+      <CardContent>
+        <form onSubmit={onSubmit} className="space-y-4">
+          {error ? (
+            <Alert variant="destructive">
+              <AlertTitle>Sign-in error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+              disabled={busy}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+              disabled={busy}
+            />
+          </div>
+          <Button type="submit" disabled={busy || !email || !password} className="w-full">
+            {busy ? "Signing in…" : "Sign in"}
+          </Button>
+        </form>
       </CardContent>
     </Card>
   );

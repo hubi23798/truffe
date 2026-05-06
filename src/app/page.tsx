@@ -25,9 +25,7 @@ export default async function HomePage() {
       <div className="border-border-subtle w-full max-w-md space-y-6 rounded-lg border p-6">
         <div>
           <h1 className="text-2xl font-semibold">boink!</h1>
-          <p className="text-fg-muted mt-1 text-sm">
-            Phase 0 — you are signed in. The dashboard arrives in Phase 1.
-          </p>
+          <p className="text-fg-muted mt-1 text-sm">Phase 0 complete. Phase 1 coming soon.</p>
         </div>
         <LogoutButton />
       </div>

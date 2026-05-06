@@ -9,13 +9,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_PATHS = [
   "/login",
-  "/enroll",
   "/api/health",
-  "/api/auth/bootstrap",
-  "/api/auth/register/options",
-  "/api/auth/register/verify",
-  "/api/auth/login/options",
-  "/api/auth/login/verify",
+  "/api/auth/login",
   // Logout is public so a client with an expired/missing session can still
   // call it to clean up the cookie. The route handler is idempotent and
   // only audits when an actual session exists, so attribution stays sound.

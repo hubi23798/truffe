@@ -7,7 +7,9 @@ test("unauthenticated home redirects to /login", async ({ page }) => {
   await expect(page.getByText(/sign in to boink/i)).toBeVisible();
 });
 
-test("login page renders enroll link", async ({ page }) => {
+test("login page renders email + password form", async ({ page }) => {
   await page.goto("/login");
-  await expect(page.getByRole("link", { name: /enroll a passkey/i })).toBeVisible();
+  await expect(page.getByLabel(/email/i)).toBeVisible();
+  await expect(page.getByLabel(/password/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
 });

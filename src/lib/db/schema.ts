@@ -1,15 +1,24 @@
 import {
   bigint,
-  boolean,
+  index,
   integer,
   jsonb,
   pgEnum,
   pgTable,
   text,
   timestamp,
-  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+
+// -- Constants ----------------------------------------------------------
+
+/**
+ * Single-user app. The user row is seeded by migration 0001 with this
+ * fixed UUID so route handlers and the auth layer can reference "the
+ * user" without a lookup. Email + password live in env (ADMIN_EMAIL,
+ * ADMIN_PASSWORD), never in this row.
+ */
+export const PRIMARY_USER_ID = "00000000-0000-0000-0000-000000000001";
 
 // -- Enums --------------------------------------------------------------
 
@@ -24,8 +33,8 @@ export const auditActorEnum = pgEnum("audit_actor", ["user", "advisor", "system"
 // -- Tables -------------------------------------------------------------
 
 /**
- * Single-user app — `user` is effectively a one-row table.
- * Profile fields are user-editable; never written by the advisor.
+ * Single-user app — `user` is effectively a one-row table seeded by
+ * migration 0001 with PRIMARY_USER_ID.
  */
 export const user = pgTable("user", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -39,28 +48,6 @@ export const user = pgTable("user", {
   }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
-
-/**
- * WebAuthn credentials. One row per device (one user can enroll many).
- * `credential_id` is unique across all credentials.
- */
-export const passkeyCredential = pgTable(
-  "passkey_credential",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    credentialId: text("credential_id").notNull(),
-    publicKey: text("public_key").notNull(),
-    signCount: bigint("sign_count", { mode: "number" }).notNull().default(0),
-    transports: jsonb("transports").$type<string[]>().notNull().default([]),
-    nickname: text("nickname"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
-  },
-  (t) => [uniqueIndex("passkey_credential_credential_id_unique").on(t.credentialId)],
-);
 
 /**
  * Server-side sessions. The cookie carries only the session id; revocation
@@ -78,30 +65,18 @@ export const session = pgTable("session", {
 });
 
 /**
- * Auth-infrastructure: short-TTL WebAuthn challenges for register / login
- * ceremonies. CSRF-protected by the challenge value itself; consumed once.
+ * Login-attempt log for per-IP rate limiting on POST /api/auth/login.
+ * Append-only; queried with `attempted_at > now() - interval '15 minutes'`.
  */
-export const challenge = pgTable("challenge", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").references(() => user.id, { onDelete: "cascade" }),
-  challenge: text("challenge").notNull(),
-  purpose: text("purpose").notNull(), // 'register' | 'login'
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  consumed: boolean("consumed").notNull().default(false),
-});
-
-/**
- * Auth-infrastructure: single-use first-passkey enrollment tokens.
- * Hash is stored, never the token itself.
- */
-export const bootstrapToken = pgTable("bootstrap_token", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tokenHash: text("token_hash").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  consumedAt: timestamp("consumed_at", { withTimezone: true }),
-});
+export const loginAttempt = pgTable(
+  "login_attempt",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ip: text("ip").notNull(),
+    attemptedAt: timestamp("attempted_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("login_attempt_ip_attempted_at_idx").on(t.ip, t.attemptedAt)],
+);
 
 /**
  * Append-only audit trail for every mutation. `actor` distinguishes
@@ -123,7 +98,5 @@ export const auditLog = pgTable("audit_log", {
 
 export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;
-export type PasskeyCredential = typeof passkeyCredential.$inferSelect;
 export type Session = typeof session.$inferSelect;
-export type Challenge = typeof challenge.$inferSelect;
-export type BootstrapToken = typeof bootstrapToken.$inferSelect;
+export type LoginAttempt = typeof loginAttempt.$inferSelect;

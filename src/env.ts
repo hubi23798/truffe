@@ -18,9 +18,14 @@ const schema = z.object({
   // must override these to "__Host-session" / "__Host-enrollment" (and
   // serves over HTTPS so Secure is set). See cookies.ts.
   SESSION_COOKIE_NAME: z.string().default("session"),
-  ENROLLMENT_COOKIE_NAME: z.string().default("enrollment"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   ADVISOR_DAILY_TOKEN_BUDGET: z.coerce.number().int().positive().default(200_000),
+  // Single-user auth (replaces passkey enrollment).
+  ADMIN_EMAIL: z.string().email().default("admin@boink.local"),
+  // bcrypt hash of the admin password. Generate via:
+  //   node -e "require('bcryptjs').hash('yourpassword', 12).then(console.log)"
+  // Bcrypt hashes are exactly 60 chars ($2a/$2b prefix + 22-char salt + 31-char digest).
+  ADMIN_PASSWORD: z.string().min(60),
 });
 
 export type Env = z.infer<typeof schema>;
