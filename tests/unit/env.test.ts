@@ -4,11 +4,11 @@ import { loadEnv } from "@/env";
 const VALID = {
   DATABASE_URL: "postgresql://postgres:secret@db.fake.supabase.co:5432/postgres",
   RP_ID: "localhost",
-  RP_NAME: "boink!",
+  RP_NAME: "piggy.ai",
   ORIGIN: "http://localhost:3000",
   SESSION_COOKIE_NAME: "__Host-session",
   NODE_ENV: "test",
-  ADMIN_EMAIL: "admin@boink.local",
+  ADMIN_EMAIL: "admin@piggy.ai",
   // Real-shape bcrypt hash (60 chars, $2b prefix). Not a real password.
   ADMIN_PASSWORD: "$2b$12$abcdefghijklmnopqrstuvabcdefghijklmnopqrstuvabcdefghijklmn",
 };
@@ -17,8 +17,8 @@ describe("loadEnv", () => {
   it("accepts valid env", () => {
     const env = loadEnv(VALID);
     expect(env.RP_ID).toBe("localhost");
-    expect(env.RP_NAME).toBe("boink!");
-    expect(env.ADMIN_EMAIL).toBe("admin@boink.local");
+    expect(env.RP_NAME).toBe("piggy.ai");
+    expect(env.ADMIN_EMAIL).toBe("admin@piggy.ai");
   });
 
   it("accepts both postgres:// and postgresql:// schemes", () => {
@@ -45,9 +45,9 @@ describe("loadEnv", () => {
     expect(() => loadEnv({ ...VALID, ADMIN_PASSWORD: "too-short" })).toThrow(/ADMIN_PASSWORD/);
   });
 
-  it("defaults ADMIN_EMAIL to admin@boink.local when omitted", () => {
+  it("defaults ADMIN_EMAIL to admin@piggy.ai when omitted", () => {
     const { ADMIN_EMAIL: _omitted, ...without } = VALID;
     const env = loadEnv(without);
-    expect(env.ADMIN_EMAIL).toBe("admin@boink.local");
+    expect(env.ADMIN_EMAIL).toBe("admin@piggy.ai");
   });
 });

@@ -4,7 +4,7 @@ test("unauthenticated home redirects to /login", async ({ page }) => {
   const res = await page.goto("/");
   expect(res?.status()).toBeLessThan(400);
   await expect(page).toHaveURL(/\/login(\?from=)?/);
-  await expect(page.getByText(/sign in to boink/i)).toBeVisible();
+  await expect(page.getByText(/sign in to piggy\.ai/i)).toBeVisible();
 });
 
 test("login page renders email + password form", async ({ page }) => {

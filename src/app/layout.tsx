@@ -1,14 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Nav } from "@/components/nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "boink!",
-  description: "boink! — personal finance dashboard and advisor",
+  title: "piggy.ai",
+  description: "piggy.ai — personal finance dashboard and advisor",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "boink!",
+    title: "piggy.ai",
     statusBarStyle: "black-translucent",
   },
   icons: {
@@ -35,7 +36,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <Nav />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

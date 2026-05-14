@@ -7,7 +7,7 @@
  * --- TOKEN SETS ---
  *
  * Two systems coexist:
- *  1. boink! cockpit tokens (surface, fg-default, fg-muted, border-subtle).
+ *  1. piggy.ai cockpit tokens (surface, fg-default, fg-muted, border-subtle).
  *     Defined as raw HSL components so Tailwind utilities derived from
  *     @theme inline resolve at runtime via CSS custom properties.
  *  2. shadcn/ui neutral baseline (background, foreground, primary, border,
@@ -19,11 +19,26 @@
 :root {
   color-scheme: light dark;
 
-  /* boink! cockpit tokens */
+  /* piggy.ai cockpit tokens */
   --color-surface-raw: 0 0% 100%;
+  --color-surface-elevated-raw: 0 0% 98%;
+  --color-surface-sunken-raw: 240 5% 96%;
   --color-fg-default-raw: 240 10% 4%;
   --color-fg-muted-raw: 240 4% 46%;
   --color-border-subtle-raw: 240 6% 90%;
+
+  /* Semantic state palette */
+  --color-success-raw: 142 71% 45%;
+  --color-success-fg-raw: 0 0% 100%;
+  --color-warning-raw: 38 92% 50%;
+  --color-warning-fg-raw: 0 0% 10%;
+  --color-danger-raw: 0 72% 51%;
+  --color-danger-fg-raw: 0 0% 100%;
+  --color-info-raw: 217 91% 60%;
+  --color-info-fg-raw: 0 0% 100%;
+
+  /* Accent */
+  --color-accent-brand-raw: 262 80% 60%;
 
   /* shadcn/ui neutral baseline (TODO Phase 4: align to cockpit palette) */
   --background: oklch(1 0 0);
@@ -48,11 +63,26 @@
 }
 
 .dark {
-  /* boink! cockpit tokens (dark) */
+  /* piggy.ai cockpit tokens (dark) */
   --color-surface-raw: 240 10% 4%;
+  --color-surface-elevated-raw: 240 6% 8%;
+  --color-surface-sunken-raw: 240 10% 3%;
   --color-fg-default-raw: 0 0% 98%;
   --color-fg-muted-raw: 240 5% 65%;
   --color-border-subtle-raw: 240 4% 16%;
+
+  /* Semantic state palette (dark — slightly desaturated) */
+  --color-success-raw: 142 60% 40%;
+  --color-success-fg-raw: 0 0% 100%;
+  --color-warning-raw: 38 85% 45%;
+  --color-warning-fg-raw: 0 0% 10%;
+  --color-danger-raw: 0 65% 48%;
+  --color-danger-fg-raw: 0 0% 100%;
+  --color-info-raw: 217 85% 55%;
+  --color-info-fg-raw: 0 0% 100%;
+
+  /* Accent */
+  --color-accent-brand-raw: 262 75% 65%;
 
   /* shadcn/ui neutral baseline (dark) */
   --background: oklch(0.145 0 0);
@@ -76,11 +106,24 @@
 }
 
 @theme inline {
-  /* boink! cockpit utilities */
+  /* piggy.ai cockpit utilities */
   --color-surface: hsl(var(--color-surface-raw));
+  --color-surface-elevated: hsl(var(--color-surface-elevated-raw));
+  --color-surface-sunken: hsl(var(--color-surface-sunken-raw));
   --color-fg-default: hsl(var(--color-fg-default-raw));
   --color-fg-muted: hsl(var(--color-fg-muted-raw));
   --color-border-subtle: hsl(var(--color-border-subtle-raw));
+
+  /* Semantic state utilities */
+  --color-success: hsl(var(--color-success-raw));
+  --color-success-fg: hsl(var(--color-success-fg-raw));
+  --color-warning: hsl(var(--color-warning-raw));
+  --color-warning-fg: hsl(var(--color-warning-fg-raw));
+  --color-danger: hsl(var(--color-danger-raw));
+  --color-danger-fg: hsl(var(--color-danger-fg-raw));
+  --color-info: hsl(var(--color-info-raw));
+  --color-info-fg: hsl(var(--color-info-fg-raw));
+  --color-accent-brand: hsl(var(--color-accent-brand-raw));
 
   /* shadcn/ui utilities (bg-primary, text-foreground, border-input, etc.) */
   --color-background: var(--background);

@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for boink on 2026-05-03T21:53:38+01:00
+# fly.toml app configuration file generated for piggy-ai on 2026-05-03T21:53:38+01:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'boink'
+app = 'piggy-ai'
 primary_region = 'fra'
 
 [build]

@@ -21,11 +21,14 @@ const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   ADVISOR_DAILY_TOKEN_BUDGET: z.coerce.number().int().positive().default(200_000),
   // Single-user auth (replaces passkey enrollment).
-  ADMIN_EMAIL: z.string().email().default("admin@boink.local"),
+  ADMIN_EMAIL: z.string().email().default("admin@piggy.ai"),
   // bcrypt hash of the admin password. Generate via:
   //   node -e "require('bcryptjs').hash('yourpassword', 12).then(console.log)"
   // Bcrypt hashes are exactly 60 chars ($2a/$2b prefix + 22-char salt + 31-char digest).
   ADMIN_PASSWORD: z.string().min(60),
+  // Shared secret for cron endpoints. If set, callers must pass it as
+  // x-cron-secret header. Leave unset in local dev to skip the check.
+  CRON_SECRET: z.string().min(16).optional(),
 });
 
 export type Env = z.infer<typeof schema>;

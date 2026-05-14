@@ -1,6 +1,6 @@
 {
-  "name": "boink!",
-  "short_name": "boink",
+  "name": "piggy.ai",
+  "short_name": "piggy",
   "description": "Personal finance dashboard and advisor",
   "start_url": "/",
   "scope": "/",
