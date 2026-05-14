@@ -10,6 +10,7 @@ const links = [
   { href: "/wealth", label: "Wealth" },
   { href: "/transactions/inbox", label: "Inbox" },
   { href: "/transactions", label: "Transactions" },
+  { href: "/categories", label: "Categories" },
   { href: "/settings", label: "Settings" },
 ];
 
