@@ -11,6 +11,7 @@ const links = [
   { href: "/transactions/inbox", label: "Inbox" },
   { href: "/transactions", label: "Transactions" },
   { href: "/categories", label: "Categories" },
+  { href: "/insights", label: "Insights" },
   { href: "/settings", label: "Settings" },
 ];
 
