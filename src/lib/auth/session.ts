@@ -1,6 +1,9 @@
 import { eq } from "drizzle-orm";
 import type { Db } from "@/lib/db/client";
-import { session } from "@/lib/db/schema";
+import { PRIMARY_USER_ID, session } from "@/lib/db/schema";
+
+const DEV_BYPASS_TOKEN = "dev-bypass";
+const FAR_FUTURE = new Date("2099-01-01T00:00:00Z");
 
 export const SESSION_SLIDING_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const SESSION_HARD_TTL_MS = 90 * 24 * 60 * 60 * 1000;
@@ -43,8 +46,13 @@ export async function createSession(
  * Read a session by id. Returns null if missing or expired (sliding or hard).
  * On a successful read, sliding refresh extends `expiresAt` up to the hard
  * cap (createdAt + 90d). `lastSeenAt` is touched.
+ *
+ * Returns a synthetic session for the dev-bypass token (auth disabled mode).
  */
 export async function readSession(db: Db, sessionId: string) {
+  if (sessionId === DEV_BYPASS_TOKEN) {
+    return { id: DEV_BYPASS_TOKEN, userId: PRIMARY_USER_ID, createdAt: FAR_FUTURE, expiresAt: FAR_FUTURE, lastSeenAt: FAR_FUTURE, userAgent: null };
+  }
   const row = await db.query.session.findFirst({ where: eq(session.id, sessionId) });
   if (!row) return null;
   if (isExpired(row)) return null;

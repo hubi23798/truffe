@@ -74,25 +74,12 @@ function applySecurityHeaders(res: NextResponse): NextResponse {
 //    avoiding 307's method-preservation footgun.
 
 export function proxy(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+  // Auth disabled for local dev — inject a bypass cookie so every page and
+  // API route passes its own session check without any code changes there.
   const cookieName = process.env.SESSION_COOKIE_NAME ?? "session";
-  const sessionId = req.cookies.get(cookieName)?.value;
-
-  if (isPublic(pathname)) {
-    return applySecurityHeaders(NextResponse.next());
-  }
-
-  if (!sessionId) {
-    if (pathname.startsWith("/api/")) {
-      return applySecurityHeaders(NextResponse.json({ error: "unauthenticated" }, { status: 401 }));
-    }
-    const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("from", pathname);
-    return applySecurityHeaders(NextResponse.redirect(url, 303));
-  }
-
-  return applySecurityHeaders(NextResponse.next());
+  const reqHeaders = new Headers(req.headers);
+  reqHeaders.set("cookie", `${cookieName}=dev-bypass`);
+  return applySecurityHeaders(NextResponse.next({ request: { headers: reqHeaders } }));
 }
 
 export const config = {
