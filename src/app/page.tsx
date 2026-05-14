@@ -4,12 +4,20 @@ import { desc, isNull } from "drizzle-orm";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
 import { getNetWorthNow } from "@/lib/net-worth/engine";
+import { getMonthlySummary, monthLabel, prevMonth } from "@/lib/summary";
 import { transaction } from "@/lib/db/schema";
 import { env } from "@/env";
 import { Badge } from "@/components/ui/badge";
 
 function fmt(minor: number, currency = "EUR") {
   return new Intl.NumberFormat("en-IE", { style: "currency", currency }).format(minor / 100);
+}
+
+function fmtSigned(minor: number, currency = "EUR") {
+  const abs = new Intl.NumberFormat("en-IE", { style: "currency", currency }).format(
+    Math.abs(minor) / 100,
+  );
+  return minor >= 0 ? `+${abs}` : `−${abs}`;
 }
 
 export default async function HomePage() {
@@ -20,8 +28,15 @@ export default async function HomePage() {
   if (!sess) redirect("/login");
 
   const db = getDb();
-  const [nw, recentTxns, uncategorizedCount] = await Promise.all([
+  const now = new Date();
+  const curYear = now.getUTCFullYear();
+  const curMonth = now.getUTCMonth() + 1;
+  const prev = prevMonth(curYear, curMonth);
+
+  const [nw, thisMo, lastMo, recentTxns, uncategorizedCount] = await Promise.all([
     getNetWorthNow(db),
+    getMonthlySummary(db, curYear, curMonth),
+    getMonthlySummary(db, prev.year, prev.month),
     db.query.transaction.findMany({
       orderBy: [desc(transaction.startedAt)],
       limit: 5,
@@ -32,20 +47,28 @@ export default async function HomePage() {
         currency: true,
         descriptionRaw: true,
         categoryId: true,
-        accountId: true,
       },
     }),
     db.$count(transaction, isNull(transaction.categoryId)),
   ]);
 
-  const categoryIds = [...new Set(recentTxns.map((t) => t.categoryId).filter(Boolean) as string[])];
-  const categories = categoryIds.length > 0
-    ? await db.query.category.findMany({
-        where: (cat, { inArray }) => inArray(cat.id, categoryIds),
-        columns: { id: true, name: true },
-      })
-    : [];
-  const catName = new Map(categories.map((c) => [c.id, c.name]));
+  const categoryIds = [
+    ...new Set(
+      [...recentTxns.map((t) => t.categoryId), ...thisMo.topCategories.map((c) => c.id)].filter(
+        Boolean,
+      ) as string[],
+    ),
+  ];
+  const categoriesData =
+    categoryIds.length > 0
+      ? await db.query.category.findMany({
+          where: (cat, { inArray }) => inArray(cat.id, categoryIds),
+          columns: { id: true, name: true },
+        })
+      : [];
+  const catName = new Map(categoriesData.map((c) => [c.id, c.name]));
+
+  const netDelta = thisMo.net - lastMo.net;
 
   const kindLabel: Record<string, string> = {
     cash: "Cash",
@@ -57,9 +80,11 @@ export default async function HomePage() {
     liability: "Liabilities",
   };
 
+  const hasMonthlyData = thisMo.income > 0 || thisMo.expenses < 0;
+
   return (
     <main className="mx-auto max-w-2xl space-y-6 p-6">
-      {/* Financial Position hero */}
+      {/* Net worth hero */}
       <div className="border-border-subtle rounded-xl border p-6">
         <p className="text-fg-muted text-sm">Net worth · as of {nw.asOf}</p>
         <p className="mt-1 text-4xl font-bold tracking-tight">{fmt(nw.netWorth)}</p>
@@ -89,7 +114,68 @@ export default async function HomePage() {
         )}
       </div>
 
-      {/* Next Actions */}
+      {/* This month summary */}
+      {hasMonthlyData && (
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-medium">This month</h2>
+            <span className="text-fg-muted text-xs">{monthLabel(curYear, curMonth)}</span>
+          </div>
+
+          <div className="border-border-subtle grid grid-cols-3 rounded-xl border text-sm">
+            <div className="p-4">
+              <p className="text-fg-muted text-xs">Income</p>
+              <p className="mt-1 font-semibold tabular-nums">
+                {thisMo.income > 0 ? fmt(thisMo.income) : <span className="text-fg-muted">—</span>}
+              </p>
+            </div>
+            <div className="border-border-subtle border-l p-4">
+              <p className="text-fg-muted text-xs">Spending</p>
+              <p className="mt-1 font-semibold tabular-nums">{fmt(Math.abs(thisMo.expenses))}</p>
+            </div>
+            <div className="border-border-subtle border-l p-4">
+              <p className="text-fg-muted text-xs">Net</p>
+              <p
+                className={`mt-1 font-semibold tabular-nums ${
+                  thisMo.net >= 0
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-red-600 dark:text-red-400"
+                }`}
+              >
+                {fmtSigned(thisMo.net)}
+              </p>
+            </div>
+          </div>
+
+          {lastMo.income > 0 || lastMo.expenses < 0 ? (
+            <p className="text-fg-muted text-xs">
+              <span
+                className={
+                  netDelta >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                }
+              >
+                {fmtSigned(netDelta)}
+              </span>
+              {" vs "}
+              {monthLabel(prev.year, prev.month)}
+            </p>
+          ) : null}
+
+          {thisMo.topCategories.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-fg-muted text-xs font-medium">Top spending</p>
+              {thisMo.topCategories.map((cat) => (
+                <div key={cat.id} className="flex items-center justify-between text-sm">
+                  <span className="text-fg-muted">{catName.get(cat.id) ?? cat.name}</span>
+                  <span className="tabular-nums">{fmt(Math.abs(cat.amount))}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Next actions */}
       {uncategorizedCount > 0 && (
         <section className="space-y-2">
           <h2 className="text-sm font-medium">Next actions</h2>
@@ -106,11 +192,13 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Recent Transactions */}
+      {/* Recent transactions */}
       {recentTxns.length > 0 && (
         <section className="space-y-2">
           <h2 className="text-sm font-medium">
-            <a href="/transactions" className="hover:underline">Recent transactions →</a>
+            <a href="/transactions" className="hover:underline">
+              Recent transactions →
+            </a>
           </h2>
           <div className="divide-border-subtle divide-y rounded-lg border text-sm">
             {recentTxns.map((txn) => (
@@ -119,12 +207,8 @@ export default async function HomePage() {
                   <p className="truncate">{txn.descriptionRaw || "—"}</p>
                   <p className="text-fg-muted text-xs">
                     {new Date(txn.startedAt).toLocaleDateString("en-IE")}
-                    {txn.categoryId
-                      ? ` · ${catName.get(txn.categoryId) ?? ""}`
-                      : " · "}
-                    {!txn.categoryId && (
-                      <span className="text-warning">uncategorized</span>
-                    )}
+                    {txn.categoryId ? ` · ${catName.get(txn.categoryId) ?? ""}` : " · "}
+                    {!txn.categoryId && <span className="text-warning">uncategorized</span>}
                   </p>
                 </div>
                 <span
