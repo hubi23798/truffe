@@ -43,6 +43,7 @@ export function BudgetRow({ categoryId, categoryName, initialTarget, actual, cur
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const committingRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const { status, ratio } = computeBudgetStatus(actual, target);
 
@@ -50,6 +51,7 @@ export function BudgetRow({ categoryId, categoryName, initialTarget, actual, cur
     setInputValue(target !== null ? String(target / 100) : "");
     setError(null);
     setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
   }
 
   function cancelEdit() {
@@ -122,11 +124,11 @@ export function BudgetRow({ categoryId, categoryName, initialTarget, actual, cur
             <div className="flex items-center gap-1">
               <span className="text-fg-muted text-xs">{fmt(actual, currency)} /</span>
               <input
+                ref={inputRef}
                 type="number"
                 min="0.01"
                 step="0.01"
                 value={inputValue}
-                autoFocus
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") void commitEdit();
@@ -137,6 +139,7 @@ export function BudgetRow({ categoryId, categoryName, initialTarget, actual, cur
                 disabled={saving}
               />
               <button
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={(e) => { e.preventDefault(); void removeTarget(); }}
                 className="text-fg-muted hover:text-red-500 ml-1 text-xs"
                 title="Remove target"
