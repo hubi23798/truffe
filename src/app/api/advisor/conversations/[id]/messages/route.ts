@@ -30,6 +30,10 @@ export async function POST(
 
   const { id } = await params;
 
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+
   const [conv] = await db
     .select({ id: advisorConversation.id, title: advisorConversation.title })
     .from(advisorConversation)
@@ -51,7 +55,13 @@ export async function POST(
     .limit(1);
   const isFirst = !firstCheck;
 
-  const result = await runAdvisorTurn(db, id, parsed.data.message);
+  let result;
+  try {
+    result = await runAdvisorTurn(db, id, parsed.data.message);
+  } catch (err) {
+    console.error("[advisor] runAdvisorTurn failed:", err);
+    return NextResponse.json({ error: "Advisor unavailable. Please try again." }, { status: 500 });
+  }
 
   if (isFirst) {
     await db

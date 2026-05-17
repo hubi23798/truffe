@@ -32,6 +32,10 @@ export async function PATCH(
 
   const { id } = await params;
 
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+
   // Verify proposal belongs to this user via conversation chain
   const [proposal] = await db
     .select({
