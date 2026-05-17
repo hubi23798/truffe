@@ -319,6 +319,27 @@ export const fxRate = pgTable(
   (t) => [primaryKey({ columns: [t.asOfDate, t.currency] })],
 );
 
+/**
+ * Monthly spend targets per leaf category. One row per (user, category).
+ * Upsert-based — updating overwrites the previous value. No target history.
+ */
+export const budgetTarget = pgTable(
+  "budget_target",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => category.id, { onDelete: "cascade" }),
+    amountMonthly: bigint("amount_monthly", { mode: "number" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("budget_target_user_category_udx").on(t.userId, t.categoryId)],
+);
+
 // -- Inferred types -----------------------------------------------------
 
 export type User = typeof user.$inferSelect;
@@ -338,3 +359,5 @@ export type Transaction = typeof transaction.$inferSelect;
 export type NewTransaction = typeof transaction.$inferInsert;
 export type BalanceSnapshot = typeof balanceSnapshot.$inferSelect;
 export type FxRate = typeof fxRate.$inferSelect;
+export type BudgetTarget = typeof budgetTarget.$inferSelect;
+export type NewBudgetTarget = typeof budgetTarget.$inferInsert;
