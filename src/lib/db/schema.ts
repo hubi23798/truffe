@@ -85,6 +85,24 @@ export const ruleMatchKindEnum = pgEnum("rule_match_kind", [
 
 export const ruleSourceEnum = pgEnum("rule_source", ["user", "llm_accepted"]);
 
+export const advisorMessageRoleEnum = pgEnum("advisor_message_role", [
+  "user",
+  "assistant",
+  "tool",
+]);
+
+export const pendingProposalKindEnum = pgEnum("pending_proposal_kind", [
+  "create_rule",
+  "recategorize",
+]);
+
+export const pendingProposalStatusEnum = pgEnum("pending_proposal_status", [
+  "pending",
+  "accepted",
+  "rejected",
+  "expired",
+]);
+
 // -- Tables -------------------------------------------------------------
 
 /**
@@ -146,6 +164,10 @@ export const auditLog = pgTable("audit_log", {
   targetId: text("target_id"),
   before: jsonb("before"),
   after: jsonb("after"),
+  advisorMessageId: uuid("advisor_message_id").references(
+    (): AnyPgColumn => advisorMessage.id,
+    { onDelete: "set null" },
+  ),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -340,6 +362,58 @@ export const budgetTarget = pgTable(
   (t) => [uniqueIndex("budget_target_user_category_udx").on(t.userId, t.categoryId)],
 );
 
+export const advisorConversation = pgTable("advisor_conversation", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  isArchived: boolean("is_archived").notNull().default(false),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const advisorMessage = pgTable(
+  "advisor_message",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => advisorConversation.id, { onDelete: "cascade" }),
+    role: advisorMessageRoleEnum("role").notNull(),
+    contentText: text("content_text"),
+    toolCalls: jsonb("tool_calls"),
+    toolResults: jsonb("tool_results"),
+    model: text("model"),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("advisor_message_conversation_id_created_at_idx").on(
+      t.conversationId,
+      t.createdAt,
+    ),
+  ],
+);
+
+export const pendingProposal = pgTable(
+  "pending_proposal",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    advisorMessageId: uuid("advisor_message_id")
+      .notNull()
+      .references(() => advisorMessage.id, { onDelete: "cascade" }),
+    kind: pendingProposalKindEnum("kind").notNull(),
+    payload: jsonb("payload").notNull(),
+    status: pendingProposalStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("pending_proposal_status_created_at_idx").on(t.status, t.createdAt),
+  ],
+);
+
 // -- Inferred types -----------------------------------------------------
 
 export type User = typeof user.$inferSelect;
@@ -361,3 +435,9 @@ export type BalanceSnapshot = typeof balanceSnapshot.$inferSelect;
 export type FxRate = typeof fxRate.$inferSelect;
 export type BudgetTarget = typeof budgetTarget.$inferSelect;
 export type NewBudgetTarget = typeof budgetTarget.$inferInsert;
+export type AdvisorConversation = typeof advisorConversation.$inferSelect;
+export type NewAdvisorConversation = typeof advisorConversation.$inferInsert;
+export type AdvisorMessage = typeof advisorMessage.$inferSelect;
+export type NewAdvisorMessage = typeof advisorMessage.$inferInsert;
+export type PendingProposal = typeof pendingProposal.$inferSelect;
+export type NewPendingProposal = typeof pendingProposal.$inferInsert;
