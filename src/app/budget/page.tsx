@@ -115,6 +115,7 @@ export default async function BudgetPage({ searchParams }: Props) {
           gte(transaction.startedAt, monthStart),
           lt(transaction.startedAt, monthEnd),
           eq(transaction.state, "completed"),
+          lt(transaction.amountNative, 0),
         ),
       )
       .groupBy(transaction.categoryId);
