@@ -103,6 +103,8 @@ export const pendingProposalStatusEnum = pgEnum("pending_proposal_status", [
   "expired",
 ]);
 
+export const frequencyEnum = pgEnum("frequency", ["weekly", "fortnightly", "monthly"]);
+
 // -- Tables -------------------------------------------------------------
 
 /**
@@ -414,6 +416,39 @@ export const pendingProposal = pgTable(
   ],
 );
 
+export const recurringSubscription = pgTable(
+  "recurring_subscription",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    detectionKey: text("detection_key"),
+    name: text("name").notNull(),
+    frequency: frequencyEnum("frequency").notNull(),
+    amountNative: bigint("amount_native", { mode: "number" }).notNull(),
+    currency: text("currency").notNull(),
+    categoryId: uuid("category_id").references(() => category.id, { onDelete: "set null" }),
+    nextDue: date("next_due"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("recurring_subscription_user_id_idx").on(t.userId)],
+);
+
+export const recurringDismissal = pgTable(
+  "recurring_dismissal",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    key: text("key").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("recurring_dismissal_user_id_key_idx").on(t.userId, t.key)],
+);
+
 // -- Inferred types -----------------------------------------------------
 
 export type User = typeof user.$inferSelect;
@@ -441,3 +476,7 @@ export type AdvisorMessage = typeof advisorMessage.$inferSelect;
 export type NewAdvisorMessage = typeof advisorMessage.$inferInsert;
 export type PendingProposal = typeof pendingProposal.$inferSelect;
 export type NewPendingProposal = typeof pendingProposal.$inferInsert;
+export type RecurringSubscription = typeof recurringSubscription.$inferSelect;
+export type NewRecurringSubscription = typeof recurringSubscription.$inferInsert;
+export type RecurringDismissal = typeof recurringDismissal.$inferSelect;
+export type NewRecurringDismissal = typeof recurringDismissal.$inferInsert;
