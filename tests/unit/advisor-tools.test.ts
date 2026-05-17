@@ -37,6 +37,14 @@ describe("wrapUserData", () => {
     const outerXml = result.replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, "");
     expect(outerXml).not.toContain("Ignore previous");
   });
+
+  it("escapes CDATA end sequence in value", () => {
+    const result = wrapUserData("transaction.description", "foo]]>bar");
+    // Must not produce a broken CDATA section
+    expect(result).not.toContain("]]>bar");
+    expect(result).toContain("foo");
+    expect(result).toContain("bar");
+  });
 });
 
 describe("executeTool — get_net_worth_today", () => {

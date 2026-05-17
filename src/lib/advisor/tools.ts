@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { and, count, desc, eq, gte, inArray, lt, sum } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, lt, ne, or, isNull, sum } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/lib/db/client";
 import {
@@ -26,10 +26,15 @@ export interface ToolContext {
   proposals: ProposalDraft[];
 }
 
+// ---------- constants ---------------------------------------------------------
+
+const INTERNAL_TRANSFER_CAT = "00000000-0000-0000-0002-000000000021";
+
 // ---------- helpers -----------------------------------------------------------
 
 export function wrapUserData(type: string, value: string): string {
-  return `<user-data type="${type}"><![CDATA[\n  ${value}\n]]></user-data>`;
+  const escaped = value.replace(/]]>/g, "]]]]><![CDATA[>");
+  return `<user-data type="${type}"><![CDATA[\n  ${escaped}\n]]></user-data>`;
 }
 
 // ---------- Zod input schemas -----------------------------------------------
@@ -202,6 +207,7 @@ async function executeGetCashFlow(input: unknown, ctx: ToolContext): Promise<unk
         gte(transaction.startedAt, fromDate),
         lt(transaction.startedAt, toDate),
         eq(transaction.state, "completed"),
+        or(isNull(transaction.categoryId), ne(transaction.categoryId, INTERNAL_TRANSFER_CAT)),
       ),
     )
     .groupBy(transaction.categoryId);
@@ -236,8 +242,8 @@ async function executeGetBudgetStatus(input: unknown, ctx: ToolContext): Promise
   const [yearStr, monthStr] = month.split("-") as [string, string];
   const year = Number(yearStr);
   const mo = Number(monthStr);
-  const monthStart = new Date(year, mo - 1, 1);
-  const monthEnd = new Date(year, mo, 1);
+  const monthStart = new Date(Date.UTC(year, mo - 1, 1));
+  const monthEnd = new Date(Date.UTC(year, mo, 1));
 
   const allCats = await ctx.db.query.category.findMany({
     where: and(eq(category.userId, PRIMARY_USER_ID), eq(category.isArchived, false)),
@@ -364,7 +370,7 @@ async function executeGetSpendingByCategory(input: unknown, ctx: ToolContext): P
       ),
     )
     .groupBy(transaction.categoryId)
-    .orderBy(desc(sum(transaction.amountNative)))
+    .orderBy(asc(sum(transaction.amountNative)))
     .limit(limitVal);
 
   return {
