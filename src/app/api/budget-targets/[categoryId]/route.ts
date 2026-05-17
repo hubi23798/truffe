@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
-import { budgetTarget, category } from "@/lib/db/schema";
+import { PRIMARY_USER_ID, budgetTarget, category } from "@/lib/db/schema";
 import { env } from "@/env";
 
 const putBody = z.object({
@@ -26,7 +26,7 @@ export async function PUT(
   const { categoryId } = await params;
 
   const cat = await db.query.category.findFirst({
-    where: and(eq(category.id, categoryId), eq(category.userId, sess.userId)),
+    where: and(eq(category.id, categoryId), eq(category.userId, PRIMARY_USER_ID)),
   });
   if (!cat) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (!cat.parentId)
@@ -37,14 +37,14 @@ export async function PUT(
       { status: 422 },
     );
 
-  const parsed = putBody.safeParse(await req.json());
+  const parsed = putBody.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
   const now = new Date();
   const [row] = await db
     .insert(budgetTarget)
     .values({
-      userId: sess.userId,
+      userId: PRIMARY_USER_ID,
       categoryId,
       amountMonthly: parsed.data.amountMonthly,
       updatedAt: now,
@@ -74,7 +74,7 @@ export async function DELETE(
 
   await db
     .delete(budgetTarget)
-    .where(and(eq(budgetTarget.userId, sess.userId), eq(budgetTarget.categoryId, categoryId)));
+    .where(and(eq(budgetTarget.userId, PRIMARY_USER_ID), eq(budgetTarget.categoryId, categoryId)));
 
   return NextResponse.json({ ok: true });
 }
