@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { computeBudgetStatus } from "@/lib/budget/compute";
 
 interface BudgetRowProps {
@@ -42,6 +42,7 @@ export function BudgetRow({ categoryId, categoryName, initialTarget, actual, cur
   const [inputValue, setInputValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const committingRef = useRef(false);
 
   const { status, ratio } = computeBudgetStatus(actual, target);
 
@@ -57,9 +58,12 @@ export function BudgetRow({ categoryId, categoryName, initialTarget, actual, cur
   }
 
   async function commitEdit() {
+    if (committingRef.current) return;
+    committingRef.current = true;
     const major = parseFloat(inputValue);
     if (isNaN(major) || major <= 0) {
       setEditing(false);
+      committingRef.current = false;
       return;
     }
     const minor = Math.round(major * 100);
@@ -80,6 +84,7 @@ export function BudgetRow({ categoryId, categoryName, initialTarget, actual, cur
     } catch {
       setError("Failed to save");
     } finally {
+      committingRef.current = false;
       setSaving(false);
       setEditing(false);
     }
@@ -88,8 +93,14 @@ export function BudgetRow({ categoryId, categoryName, initialTarget, actual, cur
   async function removeTarget() {
     setSaving(true);
     try {
-      await fetch(`/api/budget-targets/${categoryId}`, { method: "DELETE" });
+      const res = await fetch(`/api/budget-targets/${categoryId}`, { method: "DELETE" });
+      if (!res.ok) {
+        setError("Failed to remove");
+        return;
+      }
       setTarget(null);
+    } catch {
+      setError("Failed to remove");
     } finally {
       setSaving(false);
       setEditing(false);
