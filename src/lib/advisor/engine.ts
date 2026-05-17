@@ -53,7 +53,7 @@ function buildMessagesFromHistory(
     if (row.role === "assistant" && row.toolCalls) {
       return {
         role: "assistant",
-        content: row.toolCalls as Anthropic.ToolUseBlock[],
+        content: row.toolCalls as Anthropic.ContentBlock[],
       };
     }
     if (row.role === "tool") {
@@ -155,8 +155,6 @@ export async function runAdvisorTurn(
       contentText: null,
       toolCalls: response.content as unknown as Record<string, unknown>[],
       model: env().MODEL_ADVISOR,
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
     });
 
     // Execute tools
