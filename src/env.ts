@@ -20,6 +20,8 @@ const schema = z.object({
   SESSION_COOKIE_NAME: z.string().default("session"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   ADVISOR_DAILY_TOKEN_BUDGET: z.coerce.number().int().positive().default(200_000),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  MODEL_ADVISOR: z.string().default("claude-opus-4-7"),
   // Single-user auth (replaces passkey enrollment).
   ADMIN_EMAIL: z.string().email().default("admin@piggy.ai"),
   // bcrypt hash of the admin password. Generate via:
