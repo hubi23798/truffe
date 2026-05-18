@@ -102,18 +102,12 @@ export async function PATCH(
   );
 
   if (proposal.action === "create") {
-    await db
-      .insert(budgetTarget)
-      .values({
-        userId: PRIMARY_USER_ID,
-        categoryId: newCategoryId,
-        amountMonthly: proposal.amount,
-        updatedAt: now,
-      })
-      .onConflictDoUpdate({
-        target: [budgetTarget.userId, budgetTarget.categoryId],
-        set: { amountMonthly: proposal.amount, updatedAt: now },
-      });
+    await db.insert(budgetTarget).values({
+      userId: PRIMARY_USER_ID,
+      categoryId: newCategoryId,
+      amountMonthly: proposal.amount,
+      updatedAt: now,
+    });
     return NextResponse.json({ subscription: sub, budgetCreated: true });
   }
 
