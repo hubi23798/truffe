@@ -429,7 +429,7 @@ export const recurringSubscription = pgTable(
     amountNative: bigint("amount_native", { mode: "number" }).notNull(),
     currency: text("currency").notNull(),
     categoryId: uuid("category_id").references(() => category.id, { onDelete: "set null" }),
-    nextDue: date("next_due"),
+    nextDue: date("next_due", { mode: "string" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
