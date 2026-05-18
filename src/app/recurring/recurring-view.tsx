@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import type { RecurringSubscription } from "@/lib/db/schema";
 import type { RecurringItem, Frequency } from "@/lib/recurring/detect";
 
@@ -84,6 +84,94 @@ function defaultFormFromSub(sub: RecurringSubscription): FormState {
 }
 
 const FREQ_ORDER: Record<Frequency, number> = { monthly: 0, fortnightly: 1, weekly: 2 };
+
+interface InlineFormProps {
+  form: FormState;
+  setForm: React.Dispatch<React.SetStateAction<FormState>>;
+  saving: boolean;
+  formError: string | null;
+  categories: CategoryOption[];
+  onSave: () => void;
+  onCancel: () => void;
+}
+
+function InlineForm({ form, setForm, saving, formError, categories, onSave, onCancel }: InlineFormProps) {
+  return (
+    <div className="border-border-subtle space-y-3 border-t px-4 py-3">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="col-span-2">
+          <label className="text-fg-muted mb-1 block text-xs">Name</label>
+          <input
+            type="text"
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            className="border-border-subtle bg-surface w-full rounded border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-fg-muted"
+          />
+        </div>
+        <div>
+          <label className="text-fg-muted mb-1 block text-xs">Amount</label>
+          <input
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={form.amount}
+            onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+            className="border-border-subtle bg-surface w-full rounded border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-fg-muted"
+          />
+        </div>
+        <div>
+          <label className="text-fg-muted mb-1 block text-xs">Frequency</label>
+          <select
+            value={form.frequency}
+            onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value as Frequency }))}
+            className="border-border-subtle bg-surface w-full rounded border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-fg-muted"
+          >
+            <option value="monthly">Monthly</option>
+            <option value="fortnightly">Fortnightly</option>
+            <option value="weekly">Weekly</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-fg-muted mb-1 block text-xs">Category (optional)</label>
+          <select
+            value={form.categoryId}
+            onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
+            className="border-border-subtle bg-surface w-full rounded border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-fg-muted"
+          >
+            <option value="">— none —</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.parentName} › {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-fg-muted mb-1 block text-xs">Next due (optional)</label>
+          <input
+            type="date"
+            value={form.nextDue}
+            onChange={(e) => setForm((f) => ({ ...f, nextDue: e.target.value }))}
+            className="border-border-subtle bg-surface w-full rounded border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-fg-muted"
+          />
+        </div>
+      </div>
+      {formError && <p className="text-xs text-red-500">{formError}</p>}
+      <div className="flex gap-2">
+        <button
+          onClick={onSave}
+          disabled={saving}
+          className="bg-fg-default text-surface rounded px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+        >
+          {saving ? "Saving…" : "Save"}
+        </button>
+        <button onClick={onCancel} className="text-fg-muted hover:text-fg-default text-sm">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function RecurringView({
   subscriptions: initialSubs,
@@ -217,13 +305,14 @@ export function RecurringView({
         );
       }
 
-      if (data.budgetConflict && form.categoryId) {
+      const conflict = data.budgetConflict;
+      if (conflict && form.categoryId) {
         setBudgetConflicts((prev) => [
           ...prev.filter((c) => c.subscriptionId !== data.subscription.id),
           {
             subscriptionId: data.subscription.id,
             categoryId: form.categoryId,
-            ...data.budgetConflict!,
+            ...conflict,
           },
         ]);
       }
@@ -268,84 +357,6 @@ export function RecurringView({
     weekly: sortedSubs.filter((s) => s.frequency === "weekly"),
   };
 
-  function InlineForm({ onSave }: { onSave: () => void }) {
-    return (
-      <div className="border-border-subtle space-y-3 border-t px-4 py-3">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="col-span-2">
-            <label className="text-fg-muted mb-1 block text-xs">Name</label>
-            <input
-              type="text"
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="border-border-subtle bg-surface w-full rounded border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-fg-muted"
-            />
-          </div>
-          <div>
-            <label className="text-fg-muted mb-1 block text-xs">Amount</label>
-            <input
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={form.amount}
-              onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-              className="border-border-subtle bg-surface w-full rounded border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-fg-muted"
-            />
-          </div>
-          <div>
-            <label className="text-fg-muted mb-1 block text-xs">Frequency</label>
-            <select
-              value={form.frequency}
-              onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value as Frequency }))}
-              className="border-border-subtle bg-surface w-full rounded border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-fg-muted"
-            >
-              <option value="monthly">Monthly</option>
-              <option value="fortnightly">Fortnightly</option>
-              <option value="weekly">Weekly</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-fg-muted mb-1 block text-xs">Category (optional)</label>
-            <select
-              value={form.categoryId}
-              onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
-              className="border-border-subtle bg-surface w-full rounded border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-fg-muted"
-            >
-              <option value="">— none —</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.parentName} › {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-fg-muted mb-1 block text-xs">Next due (optional)</label>
-            <input
-              type="date"
-              value={form.nextDue}
-              onChange={(e) => setForm((f) => ({ ...f, nextDue: e.target.value }))}
-              className="border-border-subtle bg-surface w-full rounded border px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-fg-muted"
-            />
-          </div>
-        </div>
-        {formError && <p className="text-xs text-red-500">{formError}</p>}
-        <div className="flex gap-2">
-          <button
-            onClick={onSave}
-            disabled={saving}
-            className="bg-fg-default text-surface rounded px-3 py-1.5 text-sm font-medium disabled:opacity-50"
-          >
-            {saving ? "Saving…" : "Save"}
-          </button>
-          <button onClick={closeForm} className="text-fg-muted hover:text-fg-default text-sm">
-            Cancel
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <main className="mx-auto max-w-2xl space-y-8 p-6">
       {/* Header */}
@@ -370,7 +381,15 @@ export function RecurringView({
       {/* New subscription inline form */}
       {expandedKey === "new" && (
         <div className="border-border-subtle overflow-hidden rounded-xl border">
-          <InlineForm onSave={() => void handleSave({ mode: "new" })} />
+          <InlineForm
+            form={form}
+            setForm={setForm}
+            saving={saving}
+            formError={formError}
+            categories={categories}
+            onSave={() => void handleSave({ mode: "new" })}
+            onCancel={closeForm}
+          />
         </div>
       )}
 
@@ -387,7 +406,8 @@ export function RecurringView({
               {items.map((sub) => {
                 const conflict = budgetConflicts.find((c) => c.subscriptionId === sub.id);
                 const isEditing = expandedKey === sub.id;
-                const today = new Date().toISOString().slice(0, 10);
+                const now = new Date();
+                const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
                 const dueSoon = sub.nextDue !== null && sub.nextDue < today;
                 return (
                   <div key={sub.id}>
@@ -425,6 +445,11 @@ export function RecurringView({
                     </div>
                     {isEditing && (
                       <InlineForm
+                        form={form}
+                        setForm={setForm}
+                        saving={saving}
+                        formError={formError}
+                        categories={categories}
                         onSave={() =>
                           void handleSave({
                             mode: "edit",
@@ -433,6 +458,7 @@ export function RecurringView({
                             amountSign: sub.amountNative < 0 ? -1 : 1,
                           })
                         }
+                        onCancel={closeForm}
                       />
                     )}
                     {conflict && (
@@ -512,6 +538,11 @@ export function RecurringView({
                   </div>
                   {isExpanding && (
                     <InlineForm
+                      form={form}
+                      setForm={setForm}
+                      saving={saving}
+                      formError={formError}
+                      categories={categories}
                       onSave={() =>
                         void handleSave({
                           mode: "confirm",
@@ -520,6 +551,7 @@ export function RecurringView({
                           amountSign: item.amountNative < 0 ? -1 : 1,
                         })
                       }
+                      onCancel={closeForm}
                     />
                   )}
                 </div>
