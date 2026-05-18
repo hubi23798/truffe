@@ -13,12 +13,18 @@ import {
 import { env } from "@/env";
 import { computeBudgetProposal } from "@/lib/recurring/budget-proposal";
 
+function toMonthlyAbs(absAmount: number, frequency: "weekly" | "fortnightly" | "monthly"): number {
+  if (frequency === "weekly") return Math.round((absAmount * 52) / 12);
+  if (frequency === "fortnightly") return Math.round((absAmount * 26) / 12);
+  return absAmount;
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const patchSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   frequency: z.enum(["weekly", "fortnightly", "monthly"]).optional(),
-  amountNative: z.number().int().optional(),
+  amountNative: z.number().int().refine((n) => n !== 0, { message: "amountNative cannot be zero" }).optional(),
   currency: z.string().length(3).optional(),
   categoryId: z.string().uuid().nullable().optional(),
   nextDue: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
@@ -41,6 +47,10 @@ export async function PATCH(
 
   const parsed = patchSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+
+  if (Object.keys(parsed.data).length === 0) {
+    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+  }
 
   const existing = await db.query.recurringSubscription.findFirst({
     where: and(
@@ -67,7 +77,9 @@ export async function PATCH(
     )
     .returning();
 
-  const newCategoryId = sub!.categoryId;
+  if (!sub) return NextResponse.json({ error: "Internal error" }, { status: 500 });
+
+  const newCategoryId = sub.categoryId;
   const categoryOrAmountChanged =
     "categoryId" in parsed.data || parsed.data.amountNative !== undefined;
 
@@ -82,9 +94,10 @@ export async function PATCH(
       and(eq(budgetTarget.userId, PRIMARY_USER_ID), eq(budgetTarget.categoryId, newCategoryId)),
     );
 
+  const monthlyAmount = toMonthlyAbs(Math.abs(sub.amountNative), sub.frequency);
   const proposal = computeBudgetProposal(
     newCategoryId,
-    sub!.amountNative,
+    monthlyAmount,
     existingRow?.amountMonthly ?? null,
   );
 
@@ -137,11 +150,13 @@ export async function DELETE(
   const { id } = await params;
   if (!UUID_RE.test(id)) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
 
-  await db
+  const deleted = await db
     .delete(recurringSubscription)
     .where(
       and(eq(recurringSubscription.id, id), eq(recurringSubscription.userId, PRIMARY_USER_ID)),
-    );
+    )
+    .returning({ id: recurringSubscription.id });
 
+  if (deleted.length === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }
