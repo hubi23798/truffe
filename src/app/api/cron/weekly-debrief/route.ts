@@ -5,8 +5,8 @@ import { generateDebrief } from "@/lib/debrief/generate";
 import { env } from "@/env";
 
 function lastMondayUTC(from: Date): Date {
-  const day = from.getUTCDay(); // 0 = Sun, 1 = Mon
-  const daysBack = day === 0 ? 6 : day - 1;
+  const day = from.getUTCDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const daysBack = day === 0 ? 7 : day; // Sun→7, Mon→1, Tue→2, ..., Sat→6
   const monday = new Date(from);
   monday.setUTCDate(from.getUTCDate() - daysBack);
   monday.setUTCHours(0, 0, 0, 0);
@@ -15,7 +15,7 @@ function lastMondayUTC(from: Date): Date {
 
 export async function POST(req: NextRequest) {
   const secret = env().CRON_SECRET;
-  if (secret && req.headers.get("x-cron-secret") !== secret) {
+  if (req.headers.get("x-cron-secret") !== secret) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
