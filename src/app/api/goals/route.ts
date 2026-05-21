@@ -1,11 +1,12 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
-import { PRIMARY_USER_ID, account, balanceSnapshot, goal } from "@/lib/db/schema";
+import { PRIMARY_USER_ID, account, goal } from "@/lib/db/schema";
 import { env } from "@/env";
+import { getLatestBalances } from "@/lib/goals/balance";
 import { calculateGoalProgress } from "@/lib/goals/progress";
 
 const createSchema = z.object({
@@ -15,35 +16,6 @@ const createSchema = z.object({
   targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   linkedAccountIds: z.array(z.string().uuid()).min(1),
 });
-
-async function getLatestBalances(
-  db: ReturnType<typeof getDb>,
-  accountIds: string[],
-): Promise<Map<string, number>> {
-  const result = new Map<string, number>();
-  if (accountIds.length === 0) return result;
-
-  const snapshots = await db
-    .select({
-      accountId: balanceSnapshot.accountId,
-      asOfDate: balanceSnapshot.asOfDate,
-      balanceBaseCcy: balanceSnapshot.balanceBaseCcy,
-    })
-    .from(balanceSnapshot)
-    .where(inArray(balanceSnapshot.accountId, accountIds));
-
-  const latest = new Map<string, { asOfDate: string; balance: number }>();
-  for (const row of snapshots) {
-    const cur = latest.get(row.accountId);
-    if (!cur || row.asOfDate > cur.asOfDate) {
-      latest.set(row.accountId, { asOfDate: row.asOfDate, balance: row.balanceBaseCcy });
-    }
-  }
-  for (const [id, { balance }] of latest) {
-    result.set(id, balance);
-  }
-  return result;
-}
 
 export async function GET() {
   const cookieStore = await cookies();

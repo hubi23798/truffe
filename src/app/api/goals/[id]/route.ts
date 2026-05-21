@@ -1,11 +1,12 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
-import { PRIMARY_USER_ID, account, balanceSnapshot, goal } from "@/lib/db/schema";
+import { PRIMARY_USER_ID, account, goal } from "@/lib/db/schema";
 import { env } from "@/env";
+import { getLatestBalances } from "@/lib/goals/balance";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -15,31 +16,6 @@ const patchSchema = z.object({
   targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   linkedAccountIds: z.array(z.string().uuid()).min(1).optional(),
 });
-
-async function getLatestBalanceSum(
-  db: ReturnType<typeof getDb>,
-  accountIds: string[],
-): Promise<number> {
-  if (accountIds.length === 0) return 0;
-
-  const snapshots = await db
-    .select({
-      accountId: balanceSnapshot.accountId,
-      asOfDate: balanceSnapshot.asOfDate,
-      balanceBaseCcy: balanceSnapshot.balanceBaseCcy,
-    })
-    .from(balanceSnapshot)
-    .where(inArray(balanceSnapshot.accountId, accountIds));
-
-  const latest = new Map<string, { asOfDate: string; balance: number }>();
-  for (const row of snapshots) {
-    const cur = latest.get(row.accountId);
-    if (!cur || row.asOfDate > cur.asOfDate) {
-      latest.set(row.accountId, { asOfDate: row.asOfDate, balance: row.balanceBaseCcy });
-    }
-  }
-  return [...latest.values()].reduce((s, { balance }) => s + balance, 0);
-}
 
 export async function PATCH(
   req: Request,
@@ -83,7 +59,8 @@ export async function PATCH(
   // Re-snapshot initialBalance when debt_payoff accounts change
   let newInitialBalance: number | undefined;
   if (existing.kind === "debt_payoff" && parsed.data.linkedAccountIds !== undefined) {
-    newInitialBalance = await getLatestBalanceSum(db, parsed.data.linkedAccountIds);
+    const balances = await getLatestBalances(db, parsed.data.linkedAccountIds);
+    newInitialBalance = parsed.data.linkedAccountIds.reduce((s, aid) => s + (balances.get(aid) ?? 0), 0);
   }
 
   const now = new Date();
