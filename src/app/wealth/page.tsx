@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
 import { getNetWorthNow, getNetWorthHistory } from "@/lib/net-worth/engine";
+import { buildForecast } from "@/lib/net-worth/forecast";
+import { ForecastChart } from "./forecast-chart";
 import { env } from "@/env";
 
 function fmt(minor: number, currency = "EUR") {
@@ -17,10 +19,12 @@ export default async function WealthPage() {
   if (!sess) redirect("/login");
 
   const db = getDb();
+  const today = new Date().toISOString().slice(0, 10);
   const [nw, history] = await Promise.all([
     getNetWorthNow(db),
-    getNetWorthHistory(db, 90),
+    getNetWorthHistory(db, 180),
   ]);
+  const forecast = buildForecast(history, today);
 
   const kindLabel: Record<string, string> = {
     cash: "Cash",
@@ -102,11 +106,29 @@ export default async function WealthPage() {
         </section>
       )}
 
-      {/* Snapshot history count */}
-      {history.length > 0 && (
-        <p className="text-fg-muted text-xs">
-          {history.length} daily snapshots · earliest {history[0]!.date}
-        </p>
+      {/* Forecast */}
+      {forecast.points.length > 1 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-medium">Forecast</h2>
+          <div className="border-border-subtle rounded-xl border p-4">
+            <ForecastChart points={forecast.points} currency="EUR" />
+            <div className="mt-3 flex gap-6 text-sm">
+              <div>
+                <p className="text-fg-muted text-xs">In 12 months</p>
+                <p className="font-medium">{fmt(forecast.projected12m)}</p>
+              </div>
+              <div>
+                <p className="text-fg-muted text-xs">Monthly trend</p>
+                <p className={`font-medium ${forecast.monthlyDelta >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                  {forecast.monthlyDelta >= 0 ? "+" : ""}{fmt(forecast.monthlyDelta)}/mo
+                </p>
+              </div>
+            </div>
+          </div>
+          <p className="text-fg-muted text-xs">
+            Based on {history.length} daily snapshots · linear trend from {history[0]?.date}
+          </p>
+        </section>
       )}
     </main>
   );

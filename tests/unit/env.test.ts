@@ -45,9 +45,9 @@ describe("loadEnv", () => {
     expect(() => loadEnv({ ...VALID, ADMIN_PASSWORD: "too-short" })).toThrow(/ADMIN_PASSWORD/);
   });
 
-  it("defaults ADMIN_EMAIL to admin@piggy.ai when omitted", () => {
+  it("defaults ADMIN_EMAIL to admin@truffe.ai when omitted", () => {
     const { ADMIN_EMAIL: _omitted, ...without } = VALID;
     const env = loadEnv(without);
-    expect(env.ADMIN_EMAIL).toBe("admin@piggy.ai");
+    expect(env.ADMIN_EMAIL).toBe("admin@truffe.ai");
   });
 });
