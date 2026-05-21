@@ -40,10 +40,13 @@ export function calculateGoalProgress(
 
   let requiredMonthly: number | null = null;
   if (goal.targetDate !== null && progressPct < 100) {
-    const monthsLeft = Math.max(1, fractionalMonths(today, goal.targetDate));
-    const remaining = goal.targetAmount - currentAmount;
-    if (remaining > 0) {
-      requiredMonthly = Math.ceil(remaining / monthsLeft);
+    const rawMonths = fractionalMonths(today, goal.targetDate);
+    if (rawMonths > 0) {
+      const monthsLeft = Math.max(1, rawMonths);
+      const remaining = goal.targetAmount - currentAmount;
+      if (remaining > 0) {
+        requiredMonthly = Math.ceil(remaining / monthsLeft);
+      }
     }
   }
 

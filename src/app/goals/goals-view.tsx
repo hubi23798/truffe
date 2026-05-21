@@ -367,6 +367,7 @@ export function GoalsView({ goals: initialGoals, accounts, currency }: GoalsView
   const [form, setForm] = useState<FormState>(defaultForm());
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
 
   function openCreate() {
     setForm(defaultForm());
@@ -496,6 +497,7 @@ export function GoalsView({ goals: initialGoals, accounts, currency }: GoalsView
   }
 
   async function handleArchive(goalId: string) {
+    setArchiveError(null);
     try {
       const r = await fetch(`/api/goals/${goalId}`, { method: "DELETE" });
       if (r.ok) {
@@ -503,10 +505,10 @@ export function GoalsView({ goals: initialGoals, accounts, currency }: GoalsView
         if (expandedId === goalId) closeForm();
         router.refresh();
       } else {
-        setFormError("Failed to archive goal.");
+        setArchiveError("Failed to archive goal.");
       }
     } catch {
-      setFormError("Network error. Please try again.");
+      setArchiveError("Network error. Please try again.");
     }
   }
 
@@ -541,6 +543,10 @@ export function GoalsView({ goals: initialGoals, accounts, currency }: GoalsView
 
       {goals.length === 0 && expandedId !== "new" && (
         <p className="text-sm text-fg-muted">No goals yet. Create your first goal above.</p>
+      )}
+
+      {archiveError && (
+        <p className="text-xs text-red-600">{archiveError}</p>
       )}
 
       <div className="space-y-4">
