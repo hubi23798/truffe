@@ -5,7 +5,7 @@ import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
 import { getNetWorthNow } from "@/lib/net-worth/engine";
 import { getMonthlySummary, monthLabel, prevMonth } from "@/lib/summary";
-import { advisorConversation, PRIMARY_USER_ID, transaction } from "@/lib/db/schema";
+import { advisorConversation, PRIMARY_USER_ID, transaction, weeklyDebrief } from "@/lib/db/schema";
 import { env } from "@/env";
 import { Badge } from "@/components/ui/badge";
 
@@ -33,7 +33,7 @@ export default async function HomePage() {
   const curMonth = now.getUTCMonth() + 1;
   const prev = prevMonth(curYear, curMonth);
 
-  const [nw, thisMo, lastMo, recentTxns, uncategorizedCount] = await Promise.all([
+  const [nw, thisMo, lastMo, recentTxns, uncategorizedCount, latestDebrief] = await Promise.all([
     getNetWorthNow(db),
     getMonthlySummary(db, curYear, curMonth),
     getMonthlySummary(db, prev.year, prev.month),
@@ -50,6 +50,11 @@ export default async function HomePage() {
       },
     }),
     db.$count(transaction, isNull(transaction.categoryId)),
+    db.query.weeklyDebrief.findFirst({
+      where: (d, { eq }) => eq(d.userId, PRIMARY_USER_ID),
+      orderBy: (d, { desc }) => [desc(d.weekStart)],
+      columns: { narrativeText: true, flags: true, weekStart: true, weekEnd: true },
+    }),
   ]);
 
   const categoryIds = [
@@ -187,6 +192,45 @@ export default async function HomePage() {
               ))}
             </div>
           )}
+        </section>
+      )}
+
+      {/* Weekly debrief */}
+      {latestDebrief && (
+        <section className="space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-medium">Weekly debrief</h2>
+            <span className="text-fg-muted text-xs">
+              {latestDebrief.weekStart} – {latestDebrief.weekEnd}
+            </span>
+          </div>
+          <div className="border-border-subtle rounded-xl border p-4 space-y-3">
+            <p className="text-sm leading-relaxed">{latestDebrief.narrativeText}</p>
+            {latestDebrief.flags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {latestDebrief.flags.map((flag, i) => (
+                  <span
+                    key={i}
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      flag.kind === "spending_spike" || flag.kind === "budget_overrun"
+                        ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                        : flag.kind === "spending_drop"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                          : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                    }`}
+                    title={flag.message}
+                  >
+                    {flag.kind === "spending_spike" && `↑ ${(flag as { category: string }).category}`}
+                    {flag.kind === "spending_drop" && `↓ ${(flag as { category: string }).category}`}
+                    {flag.kind === "budget_overrun" && `Over budget: ${(flag as { category: string }).category}`}
+                    {flag.kind === "recurring_due" && `Due: ${(flag as { name: string }).name}`}
+                    {flag.kind === "income_change" && "Income changed"}
+                    {flag.kind === "new_category" && `New: ${(flag as { category: string }).category}`}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
       )}
 
