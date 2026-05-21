@@ -39,7 +39,6 @@ describe("classifyTransactions", () => {
   });
 
   it("returns [] immediately for empty input without calling Anthropic", async () => {
-    mockCreate.mockClear();
     const result = await classifyTransactions([], CATEGORIES);
     expect(result).toEqual([]);
     expect(mockCreate).not.toHaveBeenCalled();
@@ -56,6 +55,8 @@ describe("classifyTransactions", () => {
     expect(result).toHaveLength(2);
     expect(result[0]).toMatchObject({ transactionId: "txn-0", categoryId: "cat-food" });
     expect(result[1]).toMatchObject({ transactionId: "txn-1", categoryId: "cat-sub" });
+    expect(result[0]!.confidence).toBe(0.95);
+    expect(result[1]!.confidence).toBe(0.88);
   });
 
   it("filters out entries whose categoryId is not in the provided category list", async () => {

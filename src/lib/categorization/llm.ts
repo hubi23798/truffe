@@ -64,14 +64,19 @@ Return ONLY the JSON array. No explanation.`,
 
     const validCategoryIds = new Set(categories.map((c) => c.id));
 
-    return (parsed as LlmClassification[]).filter(
-      (item) =>
-        typeof item === "object" &&
-        item !== null &&
-        typeof item.transactionId === "string" &&
-        typeof item.categoryId === "string" &&
-        validCategoryIds.has(item.categoryId) &&
-        typeof item.confidence === "number",
+    return (parsed as unknown[]).filter(
+      (item): item is LlmClassification => {
+        if (typeof item !== "object" || item === null) return false;
+        const r = item as Record<string, unknown>;
+        return (
+          typeof r["transactionId"] === "string" &&
+          typeof r["categoryId"] === "string" &&
+          validCategoryIds.has(r["categoryId"] as string) &&
+          typeof r["confidence"] === "number" &&
+          (r["confidence"] as number) >= 0 &&
+          (r["confidence"] as number) <= 1
+        );
+      },
     );
   } catch (e) {
     console.error("[llm-categorization] failed:", e);
