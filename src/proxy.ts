@@ -35,14 +35,17 @@ function isPublic(pathname: string): boolean {
 // -- Security headers --------------------------------------------------
 //
 // Phase 0 trade-offs documented inline:
-// - script-src 'self': strict; if Next.js hydration scripts break, fall
-//   back to 'unsafe-inline' or implement per-request CSP nonces.
+// - script-src: dev allows 'unsafe-inline' because Next.js/Turbopack injects
+//   inline RSC payload scripts (self.__next_f.push) required for hydration.
+//   Production keeps 'self' only; Phase 4 polish: tighten with nonces.
 // - style-src 'unsafe-inline': pragmatic for Tailwind v4 runtime CSS
 //   variables. Phase 4 polish: tighten with nonces.
 
+const isDev = process.env.NODE_ENV === "development";
+
 const CSP = [
   "default-src 'self'",
-  "script-src 'self'",
+  isDev ? "script-src 'self' 'unsafe-inline'" : "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self' data:",
