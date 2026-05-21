@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
 import { PRIMARY_USER_ID, account, goal, user } from "@/lib/db/schema";
@@ -40,7 +40,7 @@ export default async function GoalsPage() {
     db
       .select()
       .from(goal)
-      .where(eq(goal.userId, PRIMARY_USER_ID) && eq(goal.isArchived, false))
+      .where(and(eq(goal.userId, PRIMARY_USER_ID), eq(goal.isArchived, false)))
       .orderBy(asc(goal.createdAt)),
     db
       .select({ id: account.id, name: account.name, kind: account.kind })

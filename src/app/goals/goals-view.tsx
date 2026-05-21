@@ -4,8 +4,9 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { SerializedGoal, AccountOption } from "./page";
 import type { GoalProgress } from "@/lib/goals/progress";
+import type { Goal } from "@/lib/db/schema";
 
-type GoalKind = "cash_target" | "emergency_fund" | "debt_payoff" | "portfolio_target";
+type GoalKind = Goal["kind"];
 
 interface GoalsViewProps {
   goals: SerializedGoal[];
@@ -159,7 +160,7 @@ function GoalCard({
       <div className="flex flex-wrap gap-2">
         {progress.progressPct >= 100 ? (
           <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800 dark:bg-green-900/30 dark:text-green-300">
-            Goal reached
+            Goal reached 🎯
           </span>
         ) : progress.requiredMonthly !== null ? (
           <span className="border-border-subtle rounded-full border px-2 py-0.5 text-xs text-fg-muted">
@@ -231,8 +232,8 @@ function GoalForm({
       try {
         const r = await fetch("/api/goals/emergency-suggestion");
         if (r.ok) {
-          const data = await r.json() as { low: number; high: number };
-          setEmergencySuggestion(data);
+          const data = await r.json() as { suggested3x: number; suggested6x: number };
+          setEmergencySuggestion({ low: data.suggested3x, high: data.suggested6x });
         }
       } catch {
         // fire and forget
@@ -486,6 +487,7 @@ export function GoalsView({ goals: initialGoals, accounts, currency }: GoalsView
         }),
       );
       closeForm();
+      router.refresh();
     } catch {
       setFormError("Network error. Please try again.");
     } finally {
@@ -494,10 +496,17 @@ export function GoalsView({ goals: initialGoals, accounts, currency }: GoalsView
   }
 
   async function handleArchive(goalId: string) {
-    const r = await fetch(`/api/goals/${goalId}`, { method: "DELETE" });
-    if (r.ok) {
-      setGoals((prev) => prev.filter((g) => g.id !== goalId));
-      if (expandedId === goalId) closeForm();
+    try {
+      const r = await fetch(`/api/goals/${goalId}`, { method: "DELETE" });
+      if (r.ok) {
+        setGoals((prev) => prev.filter((g) => g.id !== goalId));
+        if (expandedId === goalId) closeForm();
+        router.refresh();
+      } else {
+        setFormError("Failed to archive goal.");
+      }
+    } catch {
+      setFormError("Network error. Please try again.");
     }
   }
 
@@ -544,7 +553,7 @@ export function GoalsView({ goals: initialGoals, accounts, currency }: GoalsView
             accounts={accounts}
             form={expandedId === g.id ? form : formFromGoal(g)}
             saving={saving}
-            formError={formError}
+            formError={expandedId === g.id ? formError : null}
             onEdit={() => (expandedId === g.id ? closeForm() : openEdit(g))}
             onArchive={() => handleArchive(g.id)}
             onFormChange={setForm}
