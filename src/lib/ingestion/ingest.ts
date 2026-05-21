@@ -1,14 +1,16 @@
 import { createHash } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { Db } from "@/lib/db/client";
 import {
   PRIMARY_USER_ID,
   account,
+  category,
   importBatch,
   importBatchRejection,
   transaction,
 } from "@/lib/db/schema";
 import { categorize } from "@/lib/categorization/categorize";
+import { classifyTransactions } from "@/lib/categorization/llm";
 import { backfillSnapshots } from "@/lib/net-worth/snapshots";
 import { RevolutCsvSource } from "./revolut-csv";
 import type { AccountHint } from "./types";
@@ -142,9 +144,47 @@ export async function ingest(db: Db, file: Buffer): Promise<IngestResult> {
     throw e;
   }
 
-  // Post-ingestion: categorize new rows, then refresh balance snapshots
+  // Post-ingestion: rules + transfer heuristic, then LLM for remaining
   if (acceptedIds.length > 0) {
     await categorize(db, acceptedIds);
+
+    // Find accepted transactions still uncategorized after rules pass
+    const uncategorized = await db.query.transaction.findMany({
+      where: (t, { and, inArray, isNull }) =>
+        and(inArray(t.id, acceptedIds), isNull(t.categoryId)),
+      columns: { id: true, descriptionRaw: true, amountNative: true, currency: true },
+    });
+
+    if (uncategorized.length > 0) {
+      const allCategories = await db.query.category.findMany({
+        where: (c, { and, eq, inArray }) =>
+          and(
+            eq(c.isArchived, false),
+            inArray(c.kind, ["expense", "investment_flow"]),
+          ),
+        columns: { id: true, name: true, parentId: true },
+      });
+
+      // Build parentName lookup from the flat list
+      const nameById = new Map(allCategories.map((c) => [c.id, c.name]));
+      const categoriesForLlm = allCategories
+        .filter((c) => c.parentId !== null)
+        .map((c) => ({
+          id: c.id,
+          name: c.name,
+          parentName: nameById.get(c.parentId!) ?? "",
+        }));
+
+      const classifications = await classifyTransactions(uncategorized, categoriesForLlm);
+
+      for (const cls of classifications) {
+        await db
+          .update(transaction)
+          .set({ categoryId: cls.categoryId, categorizedBy: "llm" })
+          .where(eq(transaction.id, cls.transactionId));
+      }
+    }
+
     await backfillSnapshots(db);
   }
 
