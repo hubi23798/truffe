@@ -220,12 +220,12 @@ export default async function HomePage() {
                     }`}
                     title={flag.message}
                   >
-                    {flag.kind === "spending_spike" && `↑ ${(flag as { category: string }).category}`}
-                    {flag.kind === "spending_drop" && `↓ ${(flag as { category: string }).category}`}
-                    {flag.kind === "budget_overrun" && `Over budget: ${(flag as { category: string }).category}`}
-                    {flag.kind === "recurring_due" && `Due: ${(flag as { name: string }).name}`}
+                    {flag.kind === "spending_spike" && `↑ ${flag.category}`}
+                    {flag.kind === "spending_drop" && `↓ ${flag.category}`}
+                    {flag.kind === "budget_overrun" && `Over budget: ${flag.category}`}
+                    {flag.kind === "recurring_due" && `Due: ${flag.name}`}
                     {flag.kind === "income_change" && "Income changed"}
-                    {flag.kind === "new_category" && `New: ${(flag as { category: string }).category}`}
+                    {flag.kind === "new_category" && `New: ${flag.category}`}
                   </span>
                 ))}
               </div>
