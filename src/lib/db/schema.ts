@@ -105,6 +105,13 @@ export const pendingProposalStatusEnum = pgEnum("pending_proposal_status", [
 
 export const frequencyEnum = pgEnum("frequency", ["weekly", "fortnightly", "monthly"]);
 
+export const goalKindEnum = pgEnum("goal_kind", [
+  "cash_target",
+  "emergency_fund",
+  "debt_payoff",
+  "portfolio_target",
+]);
+
 // -- Tables -------------------------------------------------------------
 
 /**
@@ -449,6 +456,28 @@ export const recurringDismissal = pgTable(
   (t) => [uniqueIndex("recurring_dismissal_user_id_key_idx").on(t.userId, t.key)],
 );
 
+// -- Goals -------------------------------------------------------------
+
+export const goal = pgTable(
+  "goal",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    kind: goalKindEnum("kind").notNull(),
+    targetAmount: integer("target_amount").notNull(), // cents in user's baseCurrency
+    targetDate: date("target_date", { mode: "string" }), // nullable YYYY-MM-DD
+    linkedAccountIds: uuid("linked_account_ids").array().notNull().default(sql`ARRAY[]::uuid[]`),
+    initialBalance: integer("initial_balance"), // debt_payoff only: debt at creation (positive cents)
+    isArchived: boolean("is_archived").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index("goal_user_id_idx").on(t.userId)],
+);
+
 // -- Weekly Debrief -----------------------------------------------------
 
 export type DebriefFlag =
@@ -506,5 +535,7 @@ export type RecurringSubscription = typeof recurringSubscription.$inferSelect;
 export type NewRecurringSubscription = typeof recurringSubscription.$inferInsert;
 export type RecurringDismissal = typeof recurringDismissal.$inferSelect;
 export type NewRecurringDismissal = typeof recurringDismissal.$inferInsert;
+export type Goal = typeof goal.$inferSelect;
+export type NewGoal = typeof goal.$inferInsert;
 export type WeeklyDebrief = typeof weeklyDebrief.$inferSelect;
 export type NewWeeklyDebrief = typeof weeklyDebrief.$inferInsert;

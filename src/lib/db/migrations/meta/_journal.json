@@ -50,6 +50,13 @@
       "when": 1779380329528,
       "tag": "0006_nervous_karnak",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1779395755757,
+      "tag": "0007_fresh_changeling",
+      "breakpoints": true
     }
   ]
 }
