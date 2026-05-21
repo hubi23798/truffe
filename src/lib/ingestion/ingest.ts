@@ -156,19 +156,22 @@ export async function ingest(db: Db, file: Buffer): Promise<IngestResult> {
     });
 
     if (uncategorized.length > 0) {
+      // Fetch ALL non-archived categories for parent-name lookup
       const allCategories = await db.query.category.findMany({
-        where: (c, { and, eq, inArray }) =>
-          and(
-            eq(c.isArchived, false),
-            inArray(c.kind, ["expense", "investment_flow"]),
-          ),
-        columns: { id: true, name: true, parentId: true },
+        where: (c, { eq }) => eq(c.isArchived, false),
+        columns: { id: true, name: true, parentId: true, kind: true },
       });
 
-      // Build parentName lookup from the flat list
+      // Build name lookup from the full set so parent names are always found
       const nameById = new Map(allCategories.map((c) => [c.id, c.name]));
+
+      // Only pass expense/investment_flow leaf categories to the LLM
       const categoriesForLlm = allCategories
-        .filter((c) => c.parentId !== null)
+        .filter(
+          (c) =>
+            c.parentId !== null &&
+            (c.kind === "expense" || c.kind === "investment_flow"),
+        )
         .map((c) => ({
           id: c.id,
           name: c.name,
