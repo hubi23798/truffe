@@ -6,7 +6,7 @@ import { env } from "@/env";
 
 function lastMondayUTC(from: Date): Date {
   const day = from.getUTCDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
-  const daysBack = day === 0 ? 7 : day; // Sun→7, Mon→1, Tue→2, ..., Sat→6
+  const daysBack = day === 0 || day === 1 ? 7 : day; // Sun→7, Mon→7, Tue→2, ..., Sat→6
   const monday = new Date(from);
   monday.setUTCDate(from.getUTCDate() - daysBack);
   monday.setUTCHours(0, 0, 0, 0);
