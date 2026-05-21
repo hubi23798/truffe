@@ -1,8 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import Anthropic from "@anthropic-ai/sdk";
 import type { DebriefFlag } from "@/lib/db/schema";
 
-vi.mock("@anthropic-ai/sdk");
+const mockCreate = vi.fn();
+
+vi.mock("@anthropic-ai/sdk", () => {
+  return {
+    default: class MockAnthropic {
+      messages = { create: mockCreate };
+    },
+  };
+});
 
 const { generateDebrief } = await import("@/lib/debrief/generate");
 
@@ -26,16 +33,9 @@ function makeDb() {
 }
 
 function mockAnthropicText(text: string) {
-  vi.mocked(Anthropic).mockImplementation(
-    () =>
-      ({
-        messages: {
-          create: vi.fn().mockResolvedValue({
-            content: [{ type: "text", text }],
-          }),
-        },
-      }) as unknown as Anthropic,
-  );
+  mockCreate.mockResolvedValue({
+    content: [{ type: "text", text }],
+  });
 }
 
 beforeEach(() => {

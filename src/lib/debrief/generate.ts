@@ -48,8 +48,7 @@ function threeMonthAvg(
 }
 
 export async function generateDebrief(db: Db, input: DebriefInput): Promise<DebriefOutput> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
-  const client: Anthropic = (Anthropic as unknown as (...args: unknown[]) => Anthropic)();
+  const client = new Anthropic();
   const { weekStart, weekEnd } = input;
 
   const prevStart = new Date(weekStart);
