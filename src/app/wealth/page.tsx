@@ -1,10 +1,14 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { and, asc, eq } from "drizzle-orm";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
+import { PRIMARY_USER_ID, goal } from "@/lib/db/schema";
 import { getNetWorthNow, getNetWorthHistory } from "@/lib/net-worth/engine";
 import { buildForecast } from "@/lib/net-worth/forecast";
-import { ForecastChart } from "./forecast-chart";
+import { getLatestBalances } from "@/lib/goals/balance";
+import { calculateGoalProgress } from "@/lib/goals/progress";
+import { ForecastSection } from "./forecast-section";
 import { env } from "@/env";
 
 function fmt(minor: number, currency = "EUR") {
@@ -20,11 +24,37 @@ export default async function WealthPage() {
 
   const db = getDb();
   const today = new Date().toISOString().slice(0, 10);
-  const [nw, history] = await Promise.all([
+
+  const [nw, history, goals] = await Promise.all([
     getNetWorthNow(db),
     getNetWorthHistory(db, 180),
+    db
+      .select()
+      .from(goal)
+      .where(and(eq(goal.userId, PRIMARY_USER_ID), eq(goal.isArchived, false)))
+      .orderBy(asc(goal.createdAt)),
   ]);
+
   const forecast = buildForecast(history, today);
+
+  // Compute current progress for each goal so the slider can estimate crossing dates
+  const allLinkedIds = [...new Set(goals.flatMap((g) => g.linkedAccountIds))];
+  const balances = await getLatestBalances(db, allLinkedIds);
+
+  const goalsForForecast = goals.map((g) => {
+    const linkedBalances = g.linkedAccountIds.map((id) => balances.get(id) ?? 0);
+    const progress = calculateGoalProgress(
+      { kind: g.kind, targetAmount: g.targetAmount, targetDate: g.targetDate ?? null, initialBalance: g.initialBalance ?? null },
+      linkedBalances,
+      today,
+    );
+    return {
+      id: g.id,
+      name: g.name,
+      targetAmount: g.targetAmount,
+      currentAmount: progress.currentAmount,
+    };
+  });
 
   const kindLabel: Record<string, string> = {
     cash: "Cash",
@@ -107,27 +137,19 @@ export default async function WealthPage() {
       )}
 
       {/* Forecast */}
-      {forecast.points.length > 1 && (
+      {forecast.historicalPoints.length > 1 && (
         <section className="space-y-3">
           <h2 className="text-sm font-medium">Forecast</h2>
-          <div className="border-border-subtle rounded-xl border p-4">
-            <ForecastChart points={forecast.points} currency="EUR" />
-            <div className="mt-3 flex gap-6 text-sm">
-              <div>
-                <p className="text-fg-muted text-xs">In 12 months</p>
-                <p className="font-medium">{fmt(forecast.projected12m)}</p>
-              </div>
-              <div>
-                <p className="text-fg-muted text-xs">Monthly trend</p>
-                <p className={`font-medium ${forecast.monthlyDelta >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                  {forecast.monthlyDelta >= 0 ? "+" : ""}{fmt(forecast.monthlyDelta)}/mo
-                </p>
-              </div>
-            </div>
-          </div>
-          <p className="text-fg-muted text-xs">
-            Based on {history.length} daily snapshots · linear trend from {history[0]?.date}
-          </p>
+          <ForecastSection
+            historicalPoints={forecast.historicalPoints}
+            baseMonthlyDelta={forecast.monthlyDelta}
+            currentNW={nw.netWorth}
+            today={today}
+            currency="EUR"
+            goals={goalsForForecast}
+            snapshotCount={history.length}
+            earliestDate={history[0]?.date ?? null}
+          />
         </section>
       )}
     </main>
