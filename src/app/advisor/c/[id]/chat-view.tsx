@@ -129,16 +129,21 @@ export function ChatView({ id, initialMessage = "" }: { id: string; initialMessa
     );
 
     try {
-      await fetch(`/api/advisor/conversations/${id}/messages`, {
+      const res = await fetch(`/api/advisor/conversations/${id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),
       });
+      if (!res.ok) {
+        throw new Error(`Send failed: ${res.status}`);
+      }
 
       // Reload full conversation
-      const updated = await fetch(`/api/advisor/conversations/${id}`).then(
-        (r) => r.json() as Promise<ConversationData>,
-      );
+      const getRes = await fetch(`/api/advisor/conversations/${id}`);
+      if (!getRes.ok) {
+        throw new Error(`Reload failed: ${getRes.status}`);
+      }
+      const updated = await getRes.json() as ConversationData;
       setData(updated);
       setProposals(updated.proposals);
     } catch (e) {
