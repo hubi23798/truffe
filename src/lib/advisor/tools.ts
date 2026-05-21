@@ -7,6 +7,7 @@ import {
   account,
   budgetTarget,
   category,
+  recurringSubscription,
   transaction,
 } from "@/lib/db/schema";
 import { computeBudgetStatus } from "@/lib/budget/compute";
@@ -142,6 +143,16 @@ export const TOOL_DEFINITIONS = [
         limit: { type: "integer", minimum: 1, maximum: 50, default: 10 },
       },
       required: ["from", "to"],
+    },
+  },
+  {
+    name: "get_subscriptions",
+    description:
+      "Returns all confirmed recurring subscriptions (bills, services) the user has set up. Includes name, frequency, amount, next due date, and category. Also returns a totalMonthly figure normalising all amounts to monthly.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+      required: [] as string[],
     },
   },
   {
@@ -387,6 +398,44 @@ async function executeGetSpendingByCategory(input: unknown, ctx: ToolContext): P
   };
 }
 
+async function executeGetSubscriptions(ctx: ToolContext): Promise<unknown> {
+  const MONTHLY_MULTIPLIER: Record<string, number> = {
+    monthly: 1,
+    fortnightly: 26 / 12,
+    weekly: 52 / 12,
+  };
+
+  const rows = await ctx.db
+    .select({
+      id: recurringSubscription.id,
+      name: recurringSubscription.name,
+      frequency: recurringSubscription.frequency,
+      amountNative: recurringSubscription.amountNative,
+      currency: recurringSubscription.currency,
+      nextDue: recurringSubscription.nextDue,
+      categoryName: category.name,
+    })
+    .from(recurringSubscription)
+    .leftJoin(category, eq(recurringSubscription.categoryId, category.id))
+    .where(eq(recurringSubscription.userId, PRIMARY_USER_ID));
+
+  let totalMonthly = 0;
+  const subscriptions = rows.map((row) => {
+    const multiplier = MONTHLY_MULTIPLIER[row.frequency] ?? 1;
+    totalMonthly += row.amountNative * multiplier;
+    return {
+      name: row.name,
+      frequency: row.frequency,
+      amount: row.amountNative,
+      currency: row.currency,
+      nextDue: row.nextDue ?? null,
+      category: row.categoryName ?? null,
+    };
+  });
+
+  return { subscriptions, totalMonthly: Math.round(totalMonthly) };
+}
+
 async function executeProposeCategorizationRule(
   input: unknown,
   ctx: ToolContext,
@@ -426,6 +475,8 @@ export async function executeTool(
       return executeGetRecentTransactions(input, ctx);
     case "get_spending_by_category":
       return executeGetSpendingByCategory(input, ctx);
+    case "get_subscriptions":
+      return executeGetSubscriptions(ctx);
     case "propose_categorization_rule":
       return executeProposeCategorizationRule(input, ctx);
     default:

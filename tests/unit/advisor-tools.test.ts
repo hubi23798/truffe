@@ -117,3 +117,83 @@ describe("executeTool — propose_categorization_rule", () => {
     expect(ctx.proposals[0]?.id).toBeTruthy();
   });
 });
+
+describe("executeTool — get_subscriptions", () => {
+  it("returns subscriptions with totalMonthly normalised", async () => {
+    const ctx = makeCtx();
+    const selectChain = {
+      from: vi.fn().mockReturnThis(),
+      leftJoin: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([
+        {
+          id: "sub-1",
+          name: "Netflix",
+          frequency: "monthly",
+          amountNative: 1599,
+          currency: "EUR",
+          nextDue: "2026-06-01",
+          categoryName: "Entertainment",
+        },
+        {
+          id: "sub-2",
+          name: "Gym",
+          frequency: "weekly",
+          amountNative: 1000,
+          currency: "EUR",
+          nextDue: "2026-05-27",
+          categoryName: null,
+        },
+      ]),
+    };
+    (ctx.db as unknown as Record<string, unknown>).select = vi.fn().mockReturnValue(selectChain);
+
+    const result = await executeTool("get_subscriptions", {}, ctx) as {
+      subscriptions: Array<{
+        name: string;
+        frequency: string;
+        amount: number;
+        currency: string;
+        nextDue: string | null;
+        category: string | null;
+      }>;
+      totalMonthly: number;
+    };
+
+    expect(result.subscriptions).toHaveLength(2);
+    expect(result.subscriptions[0]).toEqual({
+      name: "Netflix",
+      frequency: "monthly",
+      amount: 1599,
+      currency: "EUR",
+      nextDue: "2026-06-01",
+      category: "Entertainment",
+    });
+    expect(result.subscriptions[1]).toEqual({
+      name: "Gym",
+      frequency: "weekly",
+      amount: 1000,
+      currency: "EUR",
+      nextDue: "2026-05-27",
+      category: null,
+    });
+    // totalMonthly: 1599 (monthly) + 1000 * 52/12 (weekly) = 1599 + 4333.33... = 5932 (rounded)
+    expect(result.totalMonthly).toBe(Math.round(1599 + 1000 * (52 / 12)));
+  });
+
+  it("returns empty list and zero totalMonthly when no subscriptions", async () => {
+    const ctx = makeCtx();
+    const selectChain = {
+      from: vi.fn().mockReturnThis(),
+      leftJoin: vi.fn().mockReturnThis(),
+      where: vi.fn().mockResolvedValue([]),
+    };
+    (ctx.db as unknown as Record<string, unknown>).select = vi.fn().mockReturnValue(selectChain);
+
+    const result = await executeTool("get_subscriptions", {}, ctx) as {
+      subscriptions: unknown[];
+      totalMonthly: number;
+    };
+    expect(result.subscriptions).toHaveLength(0);
+    expect(result.totalMonthly).toBe(0);
+  });
+});
