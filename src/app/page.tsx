@@ -249,7 +249,7 @@ export default async function HomePage() {
             Open advisor →
           </a>
         </div>
-        <div className="border-border-subtle divide-border-subtle divide-y rounded-xl border text-sm">
+        <div className="border-border-subtle divide-border-subtle divide-y overflow-hidden rounded-xl border text-sm">
           {(
             [
               "How did I do this month?",
