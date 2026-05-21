@@ -79,9 +79,9 @@ function ProposalCard({
   );
 }
 
-export function ChatView({ id }: { id: string }) {
+export function ChatView({ id, initialMessage = "" }: { id: string; initialMessage?: string }) {
   const [data, setData] = useState<ConversationData | null>(null);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(initialMessage);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [proposals, setProposals] = useState<ProposalData[]>([]);
