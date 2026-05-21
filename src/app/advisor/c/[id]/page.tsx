@@ -9,5 +9,5 @@ export default async function AdvisorChatPage({
 }) {
   const { id } = await params;
   const { q } = await searchParams;
-  return <ChatView id={id} initialMessage={q ?? ""} />;
+  return <ChatView id={id} initialMessage={q} />;
 }
