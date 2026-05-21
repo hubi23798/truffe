@@ -44,7 +44,7 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>Sign in to piggy.ai</CardTitle>
+        <CardTitle>Sign in to truffe.ai</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">

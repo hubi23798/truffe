@@ -23,7 +23,7 @@ const schema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   MODEL_ADVISOR: z.string().default("claude-opus-4-7"),
   // Single-user auth (replaces passkey enrollment).
-  ADMIN_EMAIL: z.string().email().default("admin@piggy.ai"),
+  ADMIN_EMAIL: z.string().email().default("admin@truffe.ai"),
   // bcrypt hash of the admin password. Generate via:
   //   node -e "require('bcryptjs').hash('yourpassword', 12).then(console.log)"
   // Bcrypt hashes are exactly 60 chars ($2a/$2b prefix + 22-char salt + 31-char digest).

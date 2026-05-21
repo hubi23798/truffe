@@ -27,7 +27,7 @@ export function Nav() {
     <header className="border-border-subtle bg-surface sticky top-0 z-10 border-b">
       <div className="mx-auto flex max-w-2xl items-center gap-1 px-4 py-2">
         <Link href={"/" as Route} className="mr-4 text-sm font-bold tracking-tight text-fg-default">
-          piggy.ai
+          truffe.ai
         </Link>
         <nav className="flex flex-1 items-center gap-1 overflow-x-auto">
           {links.map((l) => (

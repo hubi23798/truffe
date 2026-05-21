@@ -7,7 +7,7 @@
  * --- TOKEN SETS ---
  *
  * Two systems coexist:
- *  1. piggy.ai cockpit tokens (surface, fg-default, fg-muted, border-subtle).
+ *  1. truffe.ai cockpit tokens (surface, fg-default, fg-muted, border-subtle).
  *     Defined as raw HSL components so Tailwind utilities derived from
  *     @theme inline resolve at runtime via CSS custom properties.
  *  2. shadcn/ui neutral baseline (background, foreground, primary, border,
@@ -19,7 +19,7 @@
 :root {
   color-scheme: light dark;
 
-  /* piggy.ai cockpit tokens */
+  /* truffe.ai cockpit tokens */
   --color-surface-raw: 0 0% 100%;
   --color-surface-elevated-raw: 0 0% 98%;
   --color-surface-sunken-raw: 240 5% 96%;
@@ -63,7 +63,7 @@
 }
 
 .dark {
-  /* piggy.ai cockpit tokens (dark) */
+  /* truffe.ai cockpit tokens (dark) */
   --color-surface-raw: 240 10% 4%;
   --color-surface-elevated-raw: 240 6% 8%;
   --color-surface-sunken-raw: 240 10% 3%;
@@ -106,7 +106,7 @@
 }
 
 @theme inline {
-  /* piggy.ai cockpit utilities */
+  /* truffe.ai cockpit utilities */
   --color-surface: hsl(var(--color-surface-raw));
   --color-surface-elevated: hsl(var(--color-surface-elevated-raw));
   --color-surface-sunken: hsl(var(--color-surface-sunken-raw));

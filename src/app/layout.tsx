@@ -4,12 +4,12 @@ import { Nav } from "@/components/nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "piggy.ai",
-  description: "piggy.ai — personal finance dashboard and advisor",
+  title: "truffe.ai",
+  description: "truffe.ai — personal finance dashboard and advisor",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "piggy.ai",
+    title: "truffe.ai",
     statusBarStyle: "black-translucent",
   },
   icons: {
