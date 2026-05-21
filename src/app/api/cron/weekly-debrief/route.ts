@@ -4,32 +4,32 @@ import { weeklyDebrief, PRIMARY_USER_ID } from "@/lib/db/schema";
 import { generateDebrief } from "@/lib/debrief/generate";
 import { env } from "@/env";
 
-function lastMondayUTC(from: Date): Date {
-  const day = from.getUTCDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
-  const daysBack = day === 0 || day === 1 ? 7 : day; // Sun→7, Mon→7, Tue→2, ..., Sat→6
-  const monday = new Date(from);
-  monday.setUTCDate(from.getUTCDate() - daysBack);
-  monday.setUTCHours(0, 0, 0, 0);
-  return monday;
+function isAuthorized(req: Request): boolean {
+  const secret = env().CRON_SECRET;
+  if (!secret) return true;
+  return req.headers.get("x-cron-secret") === secret;
 }
 
 export async function POST(req: NextRequest) {
-  const secret = env().CRON_SECRET;
-  if (req.headers.get("x-cron-secret") !== secret) {
+  if (!isAuthorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const now = new Date();
-  // weekEnd = last Sunday (the Sunday before this Monday)
-  const monday = lastMondayUTC(now);
-  const weekEnd = new Date(monday);
-  weekEnd.setUTCDate(monday.getUTCDate() - 1);
-  weekEnd.setUTCHours(23, 59, 59, 999);
+  const day = now.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
 
-  // weekStart = Monday before weekEnd
-  const weekStart = new Date(weekEnd);
-  weekStart.setUTCDate(weekEnd.getUTCDate() - 6);
-  weekStart.setUTCHours(0, 0, 0, 0);
+  // This week's Monday (day=0 means Sunday, so go back 6 days to Mon)
+  const thisMonday = new Date(now);
+  thisMonday.setUTCDate(now.getUTCDate() - (day === 0 ? 6 : day - 1));
+  thisMonday.setUTCHours(0, 0, 0, 0);
+
+  // Previous complete week: Mon through Sun immediately before thisMonday
+  const weekStart = new Date(thisMonday);
+  weekStart.setUTCDate(thisMonday.getUTCDate() - 7);
+
+  const weekEnd = new Date(thisMonday);
+  weekEnd.setUTCDate(thisMonday.getUTCDate() - 1);
+  weekEnd.setUTCHours(23, 59, 59, 999);
 
   const db = getDb();
   const output = await generateDebrief(db, { weekStart, weekEnd });
