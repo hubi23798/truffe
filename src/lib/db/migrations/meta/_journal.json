@@ -57,6 +57,13 @@
       "when": 1779395755757,
       "tag": "0007_fresh_changeling",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1779395884027,
+      "tag": "0008_outgoing_amazoness",
+      "breakpoints": true
     }
   ]
 }

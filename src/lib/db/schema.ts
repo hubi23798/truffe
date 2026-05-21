@@ -467,10 +467,10 @@ export const goal = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     kind: goalKindEnum("kind").notNull(),
-    targetAmount: integer("target_amount").notNull(), // cents in user's baseCurrency
+    targetAmount: bigint("target_amount", { mode: "number" }).notNull(), // cents in user's baseCurrency
     targetDate: date("target_date", { mode: "string" }), // nullable YYYY-MM-DD
     linkedAccountIds: uuid("linked_account_ids").array().notNull().default(sql`ARRAY[]::uuid[]`),
-    initialBalance: integer("initial_balance"), // debt_payoff only: debt at creation (positive cents)
+    initialBalance: bigint("initial_balance", { mode: "number" }), // debt_payoff only: debt at creation (positive cents)
     isArchived: boolean("is_archived").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
