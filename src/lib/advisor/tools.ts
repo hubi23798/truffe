@@ -31,6 +31,12 @@ export interface ToolContext {
 
 const INTERNAL_TRANSFER_CAT = "00000000-0000-0000-0002-000000000021";
 
+const SUBSCRIPTION_MONTHLY_MULTIPLIER: Record<string, number> = {
+  monthly: 1,
+  fortnightly: 26 / 12,
+  weekly: 52 / 12,
+};
+
 // ---------- helpers -----------------------------------------------------------
 
 export function wrapUserData(type: string, value: string): string {
@@ -399,15 +405,8 @@ async function executeGetSpendingByCategory(input: unknown, ctx: ToolContext): P
 }
 
 async function executeGetSubscriptions(ctx: ToolContext): Promise<unknown> {
-  const MONTHLY_MULTIPLIER: Record<string, number> = {
-    monthly: 1,
-    fortnightly: 26 / 12,
-    weekly: 52 / 12,
-  };
-
   const rows = await ctx.db
     .select({
-      id: recurringSubscription.id,
       name: recurringSubscription.name,
       frequency: recurringSubscription.frequency,
       amountNative: recurringSubscription.amountNative,
@@ -417,11 +416,12 @@ async function executeGetSubscriptions(ctx: ToolContext): Promise<unknown> {
     })
     .from(recurringSubscription)
     .leftJoin(category, eq(recurringSubscription.categoryId, category.id))
-    .where(eq(recurringSubscription.userId, PRIMARY_USER_ID));
+    .where(eq(recurringSubscription.userId, PRIMARY_USER_ID))
+    .orderBy(asc(recurringSubscription.name));
 
   let totalMonthly = 0;
   const subscriptions = rows.map((row) => {
-    const multiplier = MONTHLY_MULTIPLIER[row.frequency] ?? 1;
+    const multiplier = SUBSCRIPTION_MONTHLY_MULTIPLIER[row.frequency] ?? 0;
     totalMonthly += row.amountNative * multiplier;
     return {
       name: row.name,

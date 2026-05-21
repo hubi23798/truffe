@@ -121,29 +121,29 @@ describe("executeTool — propose_categorization_rule", () => {
 describe("executeTool — get_subscriptions", () => {
   it("returns subscriptions with totalMonthly normalised", async () => {
     const ctx = makeCtx();
+    const rows = [
+      {
+        name: "Netflix",
+        frequency: "monthly",
+        amountNative: 1599,
+        currency: "EUR",
+        nextDue: "2026-06-01",
+        categoryName: "Entertainment",
+      },
+      {
+        name: "Gym",
+        frequency: "weekly",
+        amountNative: 1000,
+        currency: "EUR",
+        nextDue: "2026-05-27",
+        categoryName: null,
+      },
+    ];
     const selectChain = {
       from: vi.fn().mockReturnThis(),
       leftJoin: vi.fn().mockReturnThis(),
-      where: vi.fn().mockResolvedValue([
-        {
-          id: "sub-1",
-          name: "Netflix",
-          frequency: "monthly",
-          amountNative: 1599,
-          currency: "EUR",
-          nextDue: "2026-06-01",
-          categoryName: "Entertainment",
-        },
-        {
-          id: "sub-2",
-          name: "Gym",
-          frequency: "weekly",
-          amountNative: 1000,
-          currency: "EUR",
-          nextDue: "2026-05-27",
-          categoryName: null,
-        },
-      ]),
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockResolvedValue(rows),
     };
     (ctx.db as unknown as Record<string, unknown>).select = vi.fn().mockReturnValue(selectChain);
 
@@ -185,7 +185,8 @@ describe("executeTool — get_subscriptions", () => {
     const selectChain = {
       from: vi.fn().mockReturnThis(),
       leftJoin: vi.fn().mockReturnThis(),
-      where: vi.fn().mockResolvedValue([]),
+      where: vi.fn().mockReturnThis(),
+      orderBy: vi.fn().mockResolvedValue([]),
     };
     (ctx.db as unknown as Record<string, unknown>).select = vi.fn().mockReturnValue(selectChain);
 
