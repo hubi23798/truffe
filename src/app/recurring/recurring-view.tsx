@@ -2,7 +2,18 @@
 
 import React, { useState } from "react";
 import type { RecurringSubscription } from "@/lib/db/schema";
-import type { RecurringItem, Frequency } from "@/lib/recurring/detect";
+import type { Frequency } from "@/lib/recurring/detect";
+
+export interface SerializedCandidate {
+  key: string;
+  description: string;
+  accountId: string;
+  frequency: Frequency;
+  amountNative: number;
+  currency: string;
+  occurrenceCount: number;
+  nextExpected: string; // YYYY-MM-DD ISO date string
+}
 
 interface CategoryOption {
   id: string;
@@ -28,7 +39,7 @@ interface FormState {
 
 interface RecurringViewProps {
   subscriptions: RecurringSubscription[];
-  candidates: RecurringItem[];
+  candidates: SerializedCandidate[];
   categories: CategoryOption[];
   accountNames: Record<string, string>;
   currency: string;
@@ -56,20 +67,20 @@ function nextDueLabel(nextDue: string | null): string {
   return `due in ${diff}d`;
 }
 
-function nextExpectedLabel(nextExpected: Date): string {
-  const diff = Math.round((nextExpected.getTime() - Date.now()) / 86_400_000);
+function nextExpectedLabel(nextExpected: string): string {
+  const diff = Math.round((new Date(nextExpected).getTime() - Date.now()) / 86_400_000);
   if (diff < 0) return `${Math.abs(diff)}d overdue`;
   if (diff === 0) return "due today";
   return `due in ${diff}d`;
 }
 
-function defaultFormFromCandidate(item: RecurringItem): FormState {
+function defaultFormFromCandidate(item: SerializedCandidate): FormState {
   return {
     name: item.description,
     amount: String(Math.abs(item.amountNative) / 100),
     frequency: item.frequency,
     categoryId: "",
-    nextDue: item.nextExpected.toISOString().slice(0, 10),
+    nextDue: item.nextExpected, // already a YYYY-MM-DD string
   };
 }
 
@@ -181,7 +192,7 @@ export function RecurringView({
   currency,
 }: RecurringViewProps) {
   const [subs, setSubs] = useState<RecurringSubscription[]>(initialSubs);
-  const [candidates, setCandidates] = useState<RecurringItem[]>(initialCandidates);
+  const [candidates, setCandidates] = useState<SerializedCandidate[]>(initialCandidates);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>({
     name: "",
@@ -357,6 +368,8 @@ export function RecurringView({
     weekly: sortedSubs.filter((s) => s.frequency === "weekly"),
   };
 
+  const today = new Date().toISOString().slice(0, 10);
+
   return (
     <main className="mx-auto max-w-2xl space-y-8 p-6">
       {/* Header */}
@@ -406,8 +419,6 @@ export function RecurringView({
               {items.map((sub) => {
                 const conflict = budgetConflicts.find((c) => c.subscriptionId === sub.id);
                 const isEditing = expandedKey === sub.id;
-                const now = new Date();
-                const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
                 const dueSoon = sub.nextDue !== null && sub.nextDue < today;
                 return (
                   <div key={sub.id}>
@@ -508,7 +519,7 @@ export function RecurringView({
                       <p className="truncate font-medium">{item.description}</p>
                       <p className="text-fg-muted truncate text-xs">
                         {accountNames[item.accountId] ?? item.accountId} ·{" "}
-                        {freqLabel(item.frequency)} · {item.occurrences.length} times ·{" "}
+                        {freqLabel(item.frequency)} · {item.occurrenceCount} times ·{" "}
                         {nextExpectedLabel(item.nextExpected)}
                       </p>
                     </div>

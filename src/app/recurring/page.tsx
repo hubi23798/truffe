@@ -14,7 +14,7 @@ import {
 } from "@/lib/db/schema";
 import { env } from "@/env";
 import { detectRecurring } from "@/lib/recurring/detect";
-import { RecurringView } from "./recurring-view";
+import { RecurringView, type SerializedCandidate } from "./recurring-view";
 
 export default async function RecurringPage() {
   const cookieStore = await cookies();
@@ -57,6 +57,17 @@ export default async function RecurringPage() {
     (r) => !confirmedKeys.has(r.key) && !dismissedKeys.has(r.key),
   );
 
+  const serializedCandidates: SerializedCandidate[] = candidates.map((c) => ({
+    key: c.key,
+    description: c.description,
+    accountId: c.accountId,
+    frequency: c.frequency,
+    amountNative: c.amountNative,
+    currency: c.currency,
+    occurrenceCount: c.occurrences.length,
+    nextExpected: c.nextExpected.toISOString().slice(0, 10),
+  }));
+
   const parentMap = new Map(
     allCats.filter((c) => !c.parentId).map((c) => [c.id, c.name]),
   );
@@ -74,7 +85,7 @@ export default async function RecurringPage() {
   return (
     <RecurringView
       subscriptions={subs}
-      candidates={candidates}
+      candidates={serializedCandidates}
       categories={categories}
       accountNames={accountNames}
       currency={currency}
