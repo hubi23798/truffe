@@ -5,7 +5,7 @@ import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
 import { getNetWorthNow } from "@/lib/net-worth/engine";
 import { getMonthlySummary, monthLabel, prevMonth } from "@/lib/summary";
-import { transaction } from "@/lib/db/schema";
+import { advisorConversation, PRIMARY_USER_ID, transaction } from "@/lib/db/schema";
 import { env } from "@/env";
 import { Badge } from "@/components/ui/badge";
 
@@ -69,6 +69,21 @@ export default async function HomePage() {
   const catName = new Map(categoriesData.map((c) => [c.id, c.name]));
 
   const netDelta = thisMo.net - lastMo.net;
+
+  async function createConversationWithQuestion(q: string) {
+    "use server";
+    const cookieStore2 = await cookies();
+    const sid2 = cookieStore2.get(env().SESSION_COOKIE_NAME)?.value;
+    if (!sid2) redirect("/login");
+    const db2 = getDb();
+    const sess2 = await readSession(db2, sid2);
+    if (!sess2) redirect("/login");
+    const [conv] = await db2
+      .insert(advisorConversation)
+      .values({ userId: PRIMARY_USER_ID, title: q.slice(0, 60) })
+      .returning({ id: advisorConversation.id });
+    redirect(`/advisor/c/${conv!.id}?q=${encodeURIComponent(q)}`);
+  }
 
   const kindLabel: Record<string, string> = {
     cash: "Cash",
@@ -225,6 +240,34 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
+      {/* Advisor prompt card */}
+      <section className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium">Ask your advisor</h2>
+          <a href="/advisor" className="text-fg-muted text-xs hover:underline">
+            Open advisor →
+          </a>
+        </div>
+        <div className="border-border-subtle divide-border-subtle divide-y rounded-xl border text-sm">
+          {(
+            [
+              "How did I do this month?",
+              "Am I on track with my budget?",
+              "What are my biggest subscriptions costing me?",
+            ] as const
+          ).map((q) => (
+            <form key={q} action={createConversationWithQuestion.bind(null, q)}>
+              <button
+                type="submit"
+                className="text-fg-muted hover:text-fg-default hover:bg-surface-hover w-full px-4 py-3 text-left transition-colors"
+              >
+                {q}
+              </button>
+            </form>
+          ))}
+        </div>
+      </section>
 
       {/* Quick links */}
       <section className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
