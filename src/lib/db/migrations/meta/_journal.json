@@ -43,6 +43,13 @@
       "when": 1779054679188,
       "tag": "0005_broken_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779380329528,
+      "tag": "0006_nervous_karnak",
+      "breakpoints": true
     }
   ]
 }

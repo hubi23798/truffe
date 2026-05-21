@@ -449,6 +449,32 @@ export const recurringDismissal = pgTable(
   (t) => [uniqueIndex("recurring_dismissal_user_id_key_idx").on(t.userId, t.key)],
 );
 
+// -- Weekly Debrief -----------------------------------------------------
+
+export type DebriefFlag =
+  | { kind: "spending_spike"; category: string; changePct: number; message: string }
+  | { kind: "spending_drop"; category: string; changePct: number; message: string }
+  | { kind: "budget_overrun"; category: string; message: string }
+  | { kind: "recurring_due"; name: string; message: string }
+  | { kind: "income_change"; changePct: number; message: string }
+  | { kind: "new_category"; category: string; message: string };
+
+export const weeklyDebrief = pgTable(
+  "weekly_debrief",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    weekStart: date("week_start", { mode: "string" }).notNull(),
+    weekEnd: date("week_end", { mode: "string" }).notNull(),
+    generatedAt: timestamp("generated_at", { withTimezone: true }).defaultNow().notNull(),
+    narrativeText: text("narrative_text").notNull(),
+    flags: jsonb("flags").$type<DebriefFlag[]>().notNull().default([]),
+  },
+  (t) => [uniqueIndex("weekly_debrief_user_week_udx").on(t.userId, t.weekStart)],
+);
+
 // -- Inferred types -----------------------------------------------------
 
 export type User = typeof user.$inferSelect;
@@ -480,3 +506,5 @@ export type RecurringSubscription = typeof recurringSubscription.$inferSelect;
 export type NewRecurringSubscription = typeof recurringSubscription.$inferInsert;
 export type RecurringDismissal = typeof recurringDismissal.$inferSelect;
 export type NewRecurringDismissal = typeof recurringDismissal.$inferInsert;
+export type WeeklyDebrief = typeof weeklyDebrief.$inferSelect;
+export type NewWeeklyDebrief = typeof weeklyDebrief.$inferInsert;
