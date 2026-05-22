@@ -21,23 +21,23 @@ export default async function SettingsPage() {
   if (!sess) redirect("/login");
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6 p-6">
-      <h1 className="text-xl font-semibold">Settings</h1>
-      <div className="divide-border-subtle divide-y rounded-lg border text-sm">
+    <div className="space-y-6 px-6 py-8">
+      <h1 className="text-xl font-semibold text-[#F7F4EE]">Settings</h1>
+      <div className="divide-y divide-[#4A2E1A] rounded-xl border border-[#4A2E1A] bg-[#3A2414] text-sm overflow-hidden">
         {items.map((item) => (
           <a
             key={item.href}
             href={item.href}
-            className="flex items-center justify-between p-3 hover:bg-black/5 dark:hover:bg-white/5"
+            className="flex items-center justify-between px-4 py-3 hover:bg-[#4A2E1A] transition-colors"
           >
             <div>
-              <p className="font-medium">{item.label}</p>
-              <p className="text-fg-muted text-xs">{item.description}</p>
+              <p className="font-medium text-[#F7F4EE]">{item.label}</p>
+              <p className="text-[#C4B8A8] text-xs">{item.description}</p>
             </div>
-            <span className="text-fg-muted">→</span>
+            <span className="text-[#6B5040]">→</span>
           </a>
         ))}
       </div>
-    </main>
+    </div>
   );
 }

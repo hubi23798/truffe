@@ -146,26 +146,26 @@ export default async function InsightsPage({ searchParams }: Props) {
   const maxCatAmount = rankedCats.reduce((max, c) => Math.max(max, Math.abs(c.amount)), 1);
 
   return (
-    <main className="mx-auto max-w-2xl space-y-8 p-6">
-      <h1 className="text-xl font-semibold">Insights</h1>
+    <div className="space-y-8 px-6 py-8">
+      <h1 className="text-xl font-semibold text-[#F7F4EE]">Insights</h1>
 
-      {/* ── 6-month bar chart ────────────────────────────────────────────── */}
+      {/* 6-month bar chart */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-medium">6-month trend</h2>
+          <h2 className="text-sm font-medium text-[#C4B8A8]">6-month trend</h2>
           <div className="flex gap-3 text-xs">
-            <span className="text-fg-muted flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-sm bg-green-500" />
+            <span className="flex items-center gap-1 text-[#C4B8A8]">
+              <span className="inline-block h-2 w-2 rounded-sm bg-[#6BBF85]" />
               Income
             </span>
-            <span className="text-fg-muted flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-sm bg-zinc-400 dark:bg-zinc-500" />
+            <span className="flex items-center gap-1 text-[#C4B8A8]">
+              <span className="inline-block h-2 w-2 rounded-sm bg-[#C9A84C]/60" />
               Spending
             </span>
           </div>
         </div>
 
-        <div className="border-border-subtle rounded-xl border px-4 pb-4 pt-6">
+        <div className="rounded-xl border border-[#4A2E1A] bg-[#3A2414] px-4 pb-4 pt-6">
           <div className="flex items-end gap-2">
             {monthlyData.map((m) => {
               const isSelected = m.key === effectiveKey;
@@ -173,39 +173,18 @@ export default async function InsightsPage({ searchParams }: Props) {
               const expH = barPx(m.expenses);
 
               return (
-                <a
-                  key={m.key}
-                  href={`/insights?month=${m.key}`}
-                  className={`group flex flex-1 flex-col items-center gap-2 transition-opacity ${
-                    isSelected ? "" : "opacity-50 hover:opacity-80"
-                  }`}
+                <a key={m.key} href={`/insights?month=${m.key}`}
+                  className={`group flex flex-1 flex-col items-center gap-2 transition-opacity ${isSelected ? "" : "opacity-40 hover:opacity-75"}`}
                 >
-                  {/* Bar pair */}
-                  <div
-                    className="flex w-full items-end gap-0.5"
-                    style={{ height: `${BAR_MAX_PX}px` }}
-                  >
-                    {/* Income bar — omit if zero */}
+                  <div className="flex w-full items-end gap-0.5" style={{ height: `${BAR_MAX_PX}px` }}>
                     {m.income > 0 ? (
-                      <div
-                        className="flex-1 rounded-t bg-green-500"
-                        style={{ height: `${Math.max(incH, 2)}px` }}
-                      />
+                      <div className="flex-1 rounded-t bg-[#6BBF85]" style={{ height: `${Math.max(incH, 2)}px` }} />
                     ) : (
                       <div className="flex-1" />
                     )}
-                    {/* Spending bar */}
-                    <div
-                      className="flex-1 rounded-t bg-zinc-400 dark:bg-zinc-500"
-                      style={{ height: `${Math.max(expH, 2)}px` }}
-                    />
+                    <div className="flex-1 rounded-t bg-[#C9A84C]/60" style={{ height: `${Math.max(expH, 2)}px` }} />
                   </div>
-                  {/* Month label */}
-                  <span
-                    className={`text-xs ${
-                      isSelected ? "font-semibold text-fg-default" : "text-fg-muted"
-                    }`}
-                  >
+                  <span className={`text-xs ${isSelected ? "font-semibold text-[#F7F4EE]" : "text-[#6B5040]"}`}>
                     {m.label}
                   </span>
                 </a>
@@ -215,46 +194,29 @@ export default async function InsightsPage({ searchParams }: Props) {
         </div>
       </section>
 
-      {/* ── Selected month breakdown ─────────────────────────────────────── */}
+      {/* Selected month breakdown */}
       <section className="space-y-4">
-        {/* Month header + summary line */}
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-sm font-medium">
+          <h2 className="text-sm font-medium text-[#C4B8A8]">
             {monthLabel(effectiveSel.year, effectiveSel.month)}
           </h2>
           <div className="flex flex-wrap gap-4 text-xs">
             {selMonthData.income > 0 && (
-              <span className="text-fg-muted">
-                Income{" "}
-                <span className="font-medium text-green-600 dark:text-green-400">
-                  {fmt(selMonthData.income)}
-                </span>
+              <span className="text-[#6B5040]">
+                Income <span className="font-mono font-medium text-[#6BBF85]">{fmt(selMonthData.income)}</span>
               </span>
             )}
             {selMonthData.expenses < 0 && (
-              <span className="text-fg-muted">
-                Spending{" "}
-                <span className="font-medium text-fg-default">
-                  {fmt(Math.abs(selMonthData.expenses))}
-                </span>
+              <span className="text-[#6B5040]">
+                Spending <span className="font-mono font-medium text-[#F7F4EE]">{fmt(Math.abs(selMonthData.expenses))}</span>
               </span>
             )}
-            <span className="text-fg-muted">
-              Net{" "}
-              <span
-                className={`font-medium ${
-                  selNet >= 0
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-red-600 dark:text-red-400"
-                }`}
-              >
-                {fmtSigned(selNet)}
-              </span>
+            <span className="text-[#6B5040]">
+              Net <span className={`font-mono font-medium ${selNet >= 0 ? "text-[#6BBF85]" : "text-[#E07070]"}`}>{fmtSigned(selNet)}</span>
             </span>
           </div>
         </div>
 
-        {/* Ranked categories with proportional bars */}
         {rankedCats.length > 0 ? (
           <div className="space-y-3">
             {rankedCats.map((cat) => {
@@ -262,23 +224,20 @@ export default async function InsightsPage({ searchParams }: Props) {
               return (
                 <div key={cat.id} className="space-y-1.5">
                   <div className="flex items-center justify-between text-sm">
-                    <span>{cat.name}</span>
-                    <span className="text-fg-muted tabular-nums">{fmt(Math.abs(cat.amount))}</span>
+                    <span className="text-[#F7F4EE]">{cat.name}</span>
+                    <span className="font-mono text-[#C4B8A8] tabular-nums">{fmt(Math.abs(cat.amount))}</span>
                   </div>
-                  <div className="bg-border-subtle h-1.5 w-full overflow-hidden rounded-full">
-                    <div
-                      className="h-full rounded-full bg-zinc-400 dark:bg-zinc-500"
-                      style={{ width: `${pct}%` }}
-                    />
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#4A2E1A]">
+                    <div className="h-full rounded-full bg-[#C9A84C]/70" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );
             })}
           </div>
         ) : (
-          <p className="text-fg-muted text-sm">No spending recorded for this month.</p>
+          <p className="text-[#C4B8A8] text-sm">No spending recorded for this month.</p>
         )}
       </section>
-    </main>
+    </div>
   );
 }

@@ -143,36 +143,28 @@ export default async function BudgetPage({ searchParams }: Props) {
   );
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="space-y-6 px-6 py-8">
       {/* Header + month navigation */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Budget</h1>
+        <h1 className="text-xl font-semibold text-[#F7F4EE]">Budget</h1>
         <div className="flex items-center gap-2 text-sm">
-          <Link href={`/budget?month=${prevMonthParam}` as Route} className="text-fg-muted hover:text-fg-default px-1">
-            ←
-          </Link>
-          <span className="w-28 text-center font-medium">{monthLabel(selectedMonth)}</span>
+          <Link href={`/budget?month=${prevMonthParam}` as Route} className="text-[#C4B8A8] hover:text-[#F7F4EE] px-1">←</Link>
+          <span className="w-28 text-center font-medium text-[#F7F4EE]">{monthLabel(selectedMonth)}</span>
           {isCurrentMonth ? (
-            <span className="text-fg-muted px-1 opacity-30">→</span>
+            <span className="text-[#4A2E1A] px-1">→</span>
           ) : (
-            <Link href={`/budget?month=${nextMonthParam}` as Route} className="text-fg-muted hover:text-fg-default px-1">
-              →
-            </Link>
+            <Link href={`/budget?month=${nextMonthParam}` as Route} className="text-[#C4B8A8] hover:text-[#F7F4EE] px-1">→</Link>
           )}
           {!isCurrentMonth && (
-            <Link href="/budget" className="text-fg-muted hover:text-fg-default ml-2 text-xs underline">
-              This month
-            </Link>
+            <Link href="/budget" className="text-[#C4B8A8] hover:text-[#F7F4EE] ml-2 text-xs underline">This month</Link>
           )}
         </div>
       </div>
 
       {leafCats.length === 0 ? (
-        <p className="text-fg-muted text-sm">
+        <p className="text-[#C4B8A8] text-sm">
           Add categories in{" "}
-          <Link href="/settings/categories" className="underline">
-            Settings → Categories
-          </Link>{" "}
+          <Link href="/settings/categories" className="text-[#6BBF85] underline">Settings → Categories</Link>{" "}
           first.
         </p>
       ) : (
@@ -182,18 +174,18 @@ export default async function BudgetPage({ searchParams }: Props) {
             const groupTarget = leaves.reduce((s, l) => s + (targetMap.get(l.id) ?? 0), 0);
 
             return (
-              <section key={parentId} className="space-y-0">
+              <section key={parentId} className="space-y-0 overflow-hidden rounded-xl border border-[#4A2E1A]">
                 {/* Parent group header */}
-                <div className="border-border-subtle flex items-center justify-between border-b px-4 py-2 text-xs font-semibold uppercase tracking-wide">
-                  <span>{parentName}</span>
-                  <span className="text-fg-muted tabular-nums">
+                <div className="flex items-center justify-between border-b border-[#4A2E1A] bg-[#2C1A0E] px-4 py-2 text-xs font-semibold uppercase tracking-wide">
+                  <span className="text-[#C4B8A8]">{parentName}</span>
+                  <span className="text-[#6B5040] tabular-nums font-mono">
                     {fmt(groupActual, currency)} spent
                     {groupTarget > 0 && ` / ${fmt(groupTarget, currency)} target`}
                   </span>
                 </div>
 
                 {/* Leaf rows */}
-                <div className="border-border-subtle divide-border-subtle divide-y overflow-hidden rounded-b-xl border border-t-0">
+                <div className="divide-y divide-[#4A2E1A] bg-[#3A2414]">
                   {leaves.map((leaf) => (
                     <BudgetRow
                       key={leaf.id}
@@ -210,6 +202,6 @@ export default async function BudgetPage({ searchParams }: Props) {
           })}
         </div>
       )}
-    </main>
+    </div>
   );
 }

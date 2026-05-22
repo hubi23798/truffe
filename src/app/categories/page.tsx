@@ -116,27 +116,23 @@ export default async function CategoriesPage({ searchParams }: Props) {
   const next = nextMonth(year, month);
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="space-y-6 px-6 py-8">
       {/* Header + month picker */}
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Categories</h1>
+        <h1 className="text-xl font-semibold text-[#F7F4EE]">Categories</h1>
         <div className="flex items-center gap-3 text-sm">
-          <a
-            href={`/categories?month=${toParam(prev.year, prev.month)}`}
-            className="text-fg-muted hover:text-fg-default transition-colors"
-          >
+          <a href={`/categories?month=${toParam(prev.year, prev.month)}`}
+            className="text-[#C4B8A8] hover:text-[#F7F4EE] transition-colors">
             ← {monthLabel(prev.year, prev.month).split(" ")[0]}
           </a>
-          <span className="text-fg-muted text-xs">{monthLabel(year, month)}</span>
+          <span className="text-[#C4B8A8] text-xs">{monthLabel(year, month)}</span>
           {!isCurrentOrFuture ? (
-            <a
-              href={`/categories?month=${toParam(next.year, next.month)}`}
-              className="text-fg-muted hover:text-fg-default transition-colors"
-            >
+            <a href={`/categories?month=${toParam(next.year, next.month)}`}
+              className="text-[#C4B8A8] hover:text-[#F7F4EE] transition-colors">
               {nextMonth(year, month) && monthLabel(next.year, next.month).split(" ")[0]} →
             </a>
           ) : (
-            <span className="text-fg-muted/40 text-sm select-none">→</span>
+            <span className="text-[#4A2E1A] text-sm select-none">→</span>
           )}
         </div>
       </div>
@@ -151,28 +147,22 @@ export default async function CategoriesPage({ searchParams }: Props) {
           const hasActivity = total !== 0;
 
           return (
-            <div key={parent.id} className="border-border-subtle overflow-hidden rounded-xl border">
+            <div key={parent.id} className="overflow-hidden rounded-xl border border-[#4A2E1A]">
               {/* Parent group header */}
-              <div className="bg-surface flex items-center justify-between px-4 py-3">
+              <div className="flex items-center justify-between bg-[#2C1A0E] px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">{parent.name}</span>
-                  <span className="text-fg-muted text-xs capitalize">{parent.kind.replace("_", " ")}</span>
+                  <span className="font-medium text-[#F7F4EE]">{parent.name}</span>
+                  <span className="text-[#6B5040] text-xs capitalize">{parent.kind.replace("_", " ")}</span>
                 </div>
-                <span
-                  className={`tabular-nums text-sm font-semibold ${
-                    !hasActivity
-                      ? "text-fg-muted"
-                      : isIncome
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-fg-default"
-                  }`}
-                >
+                <span className={`font-mono tabular-nums text-sm font-semibold ${
+                  !hasActivity ? "text-[#6B5040]" : isIncome ? "text-[#6BBF85]" : "text-[#F7F4EE]"
+                }`}>
                   {hasActivity ? fmt(displayTotal) : "—"}
                 </span>
               </div>
 
               {/* Leaf categories */}
-              <div className="divide-border-subtle divide-y">
+              <div className="divide-y divide-[#4A2E1A] bg-[#3A2414]">
                 {children.map((child) => {
                   const data = spending.get(child.id);
                   const amt = data?.total ?? 0;
@@ -181,31 +171,18 @@ export default async function CategoriesPage({ searchParams }: Props) {
                   const displayAmt = isIncome ? amt : Math.abs(amt);
 
                   return (
-                    <div
-                      key={child.id}
-                      className="flex items-center justify-between px-4 py-2.5 text-sm"
-                    >
-                      <span className={hasSpend ? "text-fg-default" : "text-fg-muted"}>
-                        {child.name}
-                      </span>
-                      <div className="flex items-center gap-3 tabular-nums">
+                    <div key={child.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                      <span className={hasSpend ? "text-[#F7F4EE]" : "text-[#6B5040]"}>{child.name}</span>
+                      <div className="flex items-center gap-3">
                         {hasSpend ? (
                           <>
-                            <span className="text-fg-muted text-xs">
-                              {count} {count === 1 ? "txn" : "txns"}
-                            </span>
-                            <span
-                              className={
-                                isIncome
-                                  ? "text-green-600 dark:text-green-400"
-                                  : "text-fg-default"
-                              }
-                            >
+                            <span className="text-[#6B5040] text-xs">{count} {count === 1 ? "txn" : "txns"}</span>
+                            <span className={`font-mono tabular-nums ${isIncome ? "text-[#6BBF85]" : "text-[#F7F4EE]"}`}>
                               {fmt(displayAmt)}
                             </span>
                           </>
                         ) : (
-                          <span className="text-fg-muted">—</span>
+                          <span className="text-[#6B5040]">—</span>
                         )}
                       </div>
                     </div>
@@ -216,6 +193,6 @@ export default async function CategoriesPage({ searchParams }: Props) {
           );
         })}
       </div>
-    </main>
+    </div>
   );
 }

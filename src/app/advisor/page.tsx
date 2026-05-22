@@ -37,13 +37,13 @@ export default async function AdvisorPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="space-y-6 px-6 py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Ask your advisor</h1>
+        <h1 className="text-xl font-semibold text-[#F7F4EE]">Ask your advisor</h1>
         <form action={createConversation}>
           <button
             type="submit"
-            className="bg-fg-default text-bg-default rounded px-3 py-1.5 text-sm font-medium"
+            className="rounded-lg bg-[#C9A84C] px-3 py-1.5 text-sm font-medium text-[#2C1A0E] hover:bg-[#D4B55C] transition-colors"
           >
             New conversation
           </button>
@@ -51,7 +51,7 @@ export default async function AdvisorPage() {
       </div>
 
       {conversations.length === 0 ? (
-        <p className="text-fg-muted text-sm">
+        <p className="text-[#C4B8A8] text-sm">
           Start a conversation to get grounded insights about your finances.
         </p>
       ) : (
@@ -60,10 +60,10 @@ export default async function AdvisorPage() {
             <li key={conv.id}>
               <Link
                 href={`/advisor/c/${conv.id}`}
-                className="border-border-subtle hover:bg-surface-hover flex items-center justify-between rounded-lg border px-4 py-3 text-sm"
+                className="flex items-center justify-between rounded-xl border border-[#4A2E1A] bg-[#3A2414] px-4 py-3 text-sm hover:bg-[#4A2E1A] transition-colors"
               >
-                <span className="min-w-0 flex-1 truncate font-medium">{conv.title}</span>
-                <span className="text-fg-muted ml-4 shrink-0 text-xs">
+                <span className="min-w-0 flex-1 truncate font-medium text-[#F7F4EE]">{conv.title}</span>
+                <span className="text-[#C4B8A8] ml-4 shrink-0 text-xs">
                   {new Date(conv.startedAt).toLocaleDateString("en-IE", {
                     day: "numeric",
                     month: "short",
@@ -74,6 +74,6 @@ export default async function AdvisorPage() {
           ))}
         </ul>
       )}
-    </main>
+    </div>
   );
 }

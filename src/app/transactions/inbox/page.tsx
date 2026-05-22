@@ -43,28 +43,28 @@ export default async function InboxPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 p-6">
+    <div className="space-y-6 px-6 py-8">
       <div>
-        <h1 className="text-xl font-semibold">Transactions inbox</h1>
-        <p className="text-fg-muted mt-1 text-sm">
+        <h1 className="text-xl font-semibold text-[#F7F4EE]">Transactions inbox</h1>
+        <p className="text-[#C4B8A8] mt-1 text-sm">
           {uncategorized.length} uncategorized transaction{uncategorized.length !== 1 ? "s" : ""}
         </p>
       </div>
 
       {uncategorized.length === 0 ? (
-        <p className="text-fg-muted text-sm">All transactions are categorized.</p>
+        <p className="text-[#C4B8A8] text-sm">All transactions are categorized.</p>
       ) : (
-        <div className="divide-border-subtle divide-y rounded-lg border text-sm">
+        <div className="divide-y divide-[#4A2E1A] rounded-xl border border-[#4A2E1A] bg-[#3A2414] text-sm overflow-hidden">
           {uncategorized.map((txn) => (
-            <div key={txn.id} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div key={txn.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between hover:bg-[#4A2E1A] transition-colors">
               <div className="min-w-0">
-                <p className="truncate font-medium">{txn.descriptionRaw || txn.typeRaw || "—"}</p>
-                <p className="text-fg-muted text-xs">
+                <p className="truncate font-medium text-[#F7F4EE]">{txn.descriptionRaw || txn.typeRaw || "—"}</p>
+                <p className="text-[#C4B8A8] text-xs font-mono">
                   {new Date(txn.startedAt).toLocaleDateString()} · {txn.state}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-4">
-                <span className={txn.amountNative < 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}>
+                <span className={`font-mono font-medium tabular-nums ${txn.amountNative < 0 ? "text-[#F7F4EE]" : "text-[#6BBF85]"}`}>
                   {formatAmount(txn.amountNative, txn.currency)}
                 </span>
                 <CategoryPicker
@@ -76,6 +76,6 @@ export default async function InboxPage() {
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }

@@ -106,89 +106,64 @@ export default async function TransactionsPage({ searchParams }: Props) {
   ].filter(Boolean).length;
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="space-y-6 px-6 py-8">
       <div>
-        <h1 className="text-xl font-semibold">Transactions</h1>
-        <p className="text-fg-muted mt-1 text-xs">
+        <h1 className="text-xl font-semibold text-[#F7F4EE]">Transactions</h1>
+        <p className="text-[#C4B8A8] mt-1 text-xs">
           {txns.length} rows (max 200){activeFilterCount > 0 ? ` · ${activeFilterCount} filter${activeFilterCount > 1 ? "s" : ""} active` : ""}
         </p>
       </div>
 
       {/* Filter bar */}
       <form method="GET" className="space-y-2 text-sm">
-        {/* Row 1: search */}
         <input
           type="search"
           name="q"
           defaultValue={filters.q ?? ""}
           placeholder="Search description…"
-          className="border-border-subtle bg-surface w-full rounded-md border px-3 py-1.5 text-sm placeholder:text-fg-muted focus:outline-none focus:ring-1 focus:ring-fg-muted"
+          className="w-full rounded-md border border-[#4A2E1A] bg-[#3A2414] px-3 py-1.5 text-sm text-[#F7F4EE] placeholder:text-[#6B5040] focus:outline-none focus:ring-1 focus:ring-[#C9A84C]"
         />
 
-        {/* Row 2: dropdowns + dates */}
         <div className="flex flex-wrap gap-2">
           <select
             name="accountId"
             defaultValue={filters.accountId ?? ""}
-            className="border-border-subtle bg-surface rounded-md border px-2 py-1 text-sm"
+            className="rounded-md border border-[#4A2E1A] bg-[#3A2414] px-2 py-1 text-sm text-[#F7F4EE]"
           >
             <option value="">All accounts</option>
             {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
+              <option key={a.id} value={a.id}>{a.name}</option>
             ))}
           </select>
 
           <select
             name="categoryId"
             defaultValue={filters.categoryId ?? ""}
-            className="border-border-subtle bg-surface rounded-md border px-2 py-1 text-sm"
+            className="rounded-md border border-[#4A2E1A] bg-[#3A2414] px-2 py-1 text-sm text-[#F7F4EE]"
             disabled={filters.uncategorized === "1"}
           >
             <option value="">All categories</option>
             {leafCategories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
+              <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
 
-          <input
-            type="date"
-            name="from"
-            defaultValue={filters.from ?? ""}
-            className="border-border-subtle bg-surface rounded-md border px-2 py-1 text-sm"
-          />
-          <input
-            type="date"
-            name="to"
-            defaultValue={filters.to ?? ""}
-            className="border-border-subtle bg-surface rounded-md border px-2 py-1 text-sm"
-          />
+          <input type="date" name="from" defaultValue={filters.from ?? ""}
+            className="rounded-md border border-[#4A2E1A] bg-[#3A2414] px-2 py-1 text-sm text-[#F7F4EE]" />
+          <input type="date" name="to" defaultValue={filters.to ?? ""}
+            className="rounded-md border border-[#4A2E1A] bg-[#3A2414] px-2 py-1 text-sm text-[#F7F4EE]" />
         </div>
 
-        {/* Row 3: checkbox + actions */}
         <div className="flex items-center gap-3">
-          <label className="border-border-subtle flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1">
-            <input
-              type="checkbox"
-              name="uncategorized"
-              value="1"
-              defaultChecked={filters.uncategorized === "1"}
-            />
+          <label className="flex cursor-pointer items-center gap-1.5 rounded-md border border-[#4A2E1A] bg-[#3A2414] px-2 py-1 text-[#C4B8A8]">
+            <input type="checkbox" name="uncategorized" value="1" defaultChecked={filters.uncategorized === "1"} />
             <span>Uncategorized only</span>
           </label>
-          <button
-            type="submit"
-            className="bg-primary text-primary-foreground rounded-md px-3 py-1 font-medium"
-          >
+          <button type="submit" className="rounded-md bg-[#C9A84C] px-3 py-1 text-sm font-medium text-[#2C1A0E]">
             Apply
           </button>
           {activeFilterCount > 0 && (
-            <a href="/transactions" className="text-fg-muted hover:text-fg-default">
-              Clear
-            </a>
+            <a href="/transactions" className="text-[#C4B8A8] hover:text-[#F7F4EE]">Clear</a>
           )}
         </div>
       </form>
@@ -196,18 +171,16 @@ export default async function TransactionsPage({ searchParams }: Props) {
       {/* Summary */}
       <div className="flex gap-6 text-sm">
         <div>
-          <p className="text-fg-muted text-xs">In</p>
-          <p className="font-medium text-green-600 dark:text-green-400">{fmt(totalIn)}</p>
+          <p className="text-[#C4B8A8] text-xs">In</p>
+          <p className="font-mono font-medium text-[#6BBF85]">{fmt(totalIn)}</p>
         </div>
         <div>
-          <p className="text-fg-muted text-xs">Out</p>
-          <p className="font-medium text-red-600 dark:text-red-400">{fmt(Math.abs(totalOut))}</p>
+          <p className="text-[#C4B8A8] text-xs">Out</p>
+          <p className="font-mono font-medium text-[#E07070]">{fmt(Math.abs(totalOut))}</p>
         </div>
         <div>
-          <p className="text-fg-muted text-xs">Net</p>
-          <p
-            className={`font-medium ${totalIn + totalOut < 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}
-          >
+          <p className="text-[#C4B8A8] text-xs">Net</p>
+          <p className={`font-mono font-medium ${totalIn + totalOut < 0 ? "text-[#E07070]" : "text-[#6BBF85]"}`}>
             {fmt(totalIn + totalOut)}
           </p>
         </div>
@@ -215,44 +188,33 @@ export default async function TransactionsPage({ searchParams }: Props) {
 
       {/* Transaction list */}
       {txns.length === 0 ? (
-        <p className="text-fg-muted text-sm">No transactions match these filters.</p>
+        <p className="text-[#C4B8A8] text-sm">No transactions match these filters.</p>
       ) : (
-        <div className="divide-border-subtle divide-y rounded-lg border text-sm">
+        <div className="divide-y divide-[#4A2E1A] rounded-xl border border-[#4A2E1A] bg-[#3A2414] text-sm overflow-hidden">
           {txns.map((txn) => (
-            <div key={txn.id} className="flex items-center justify-between p-3">
+            <div key={txn.id} className="flex items-center justify-between px-4 py-3 hover:bg-[#4A2E1A] transition-colors">
               <div className="min-w-0 flex-1">
-                <p className="truncate">{txn.descriptionRaw || "—"}</p>
-                <p className="text-fg-muted mt-0.5 text-xs">
+                <p className="truncate text-[#F7F4EE]">{txn.descriptionRaw || "—"}</p>
+                <p className="text-[#C4B8A8] mt-0.5 text-xs font-mono">
                   {new Date(txn.startedAt).toLocaleDateString("en-IE")}
                   {!filters.accountId && ` · ${acctName.get(txn.accountId) ?? ""}`}
                   {txn.categoryId ? ` · ${catName.get(txn.categoryId) ?? ""}` : ""}
-                  {!txn.categoryId && (
-                    <>
-                      {" · "}
-                      <span className="text-warning">uncategorized</span>
-                    </>
-                  )}
+                  {!txn.categoryId && <span className="text-[#C9A84C]"> · uncategorized</span>}
                   {txn.state !== "completed" && ` · ${txn.state}`}
                 </p>
               </div>
               <div className="ml-3 shrink-0 text-right">
-                <span
-                  className={`font-medium ${
-                    txn.amountNative < 0
-                      ? "text-red-600 dark:text-red-400"
-                      : "text-green-600 dark:text-green-400"
-                  }`}
-                >
+                <span className={`font-mono font-medium tabular-nums ${txn.amountNative < 0 ? "text-[#F7F4EE]" : "text-[#6BBF85]"}`}>
                   {fmt(txn.amountNative, txn.currency)}
                 </span>
                 {txn.feeNative !== 0 && (
-                  <p className="text-fg-muted text-xs">fee {fmt(txn.feeNative, txn.currency)}</p>
+                  <p className="text-[#C4B8A8] text-xs">fee {fmt(txn.feeNative, txn.currency)}</p>
                 )}
               </div>
             </div>
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }

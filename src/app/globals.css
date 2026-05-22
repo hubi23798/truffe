@@ -4,116 +4,107 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * --- TOKEN SETS ---
- *
- * Two systems coexist:
- *  1. truffe.ai cockpit tokens (surface, fg-default, fg-muted, border-subtle).
- *     Defined as raw HSL components so Tailwind utilities derived from
- *     @theme inline resolve at runtime via CSS custom properties.
- *  2. shadcn/ui neutral baseline (background, foreground, primary, border,
- *     etc.) used by the shipped primitives. Standard shadcn neutral
- *     palette — Phase 4 will align these to the cockpit palette in §6.3
- *     of the merged spec.
+ * truffe.ai — dark truffle theme
+ * Background: #2C1A0E  Surface/card: #3A2414  Border: #4A2E1A
+ * Text: #F7F4EE         Muted: #C4B8A8         Gold: #C9A84C
+ * Green: #6BBF85        Red: #E07070
  */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
 
   /* truffe.ai cockpit tokens */
-  --color-surface-raw: 0 0% 100%;
-  --color-surface-elevated-raw: 0 0% 98%;
-  --color-surface-sunken-raw: 240 5% 96%;
-  --color-fg-default-raw: 240 10% 4%;
-  --color-fg-muted-raw: 240 4% 46%;
-  --color-border-subtle-raw: 240 6% 90%;
+  --color-surface-raw: 25 49% 15%;         /* #3A2414 — card / panel */
+  --color-surface-elevated-raw: 25 48% 20%; /* #4A2E1A — hover / depth */
+  --color-surface-sunken-raw: 21 62% 6%;   /* #1A0D06 — sidebar depth */
+  --color-fg-default-raw: 40 37% 95%;      /* #F7F4EE — warm cream */
+  --color-fg-muted-raw: 34 19% 71%;        /* #C4B8A8 — warm taupe */
+  --color-border-subtle-raw: 25 48% 20%;   /* #4A2E1A — warm dark border */
 
-  /* Semantic state palette */
-  --color-success-raw: 142 71% 45%;
-  --color-success-fg-raw: 0 0% 100%;
-  --color-warning-raw: 38 92% 50%;
-  --color-warning-fg-raw: 0 0% 10%;
-  --color-danger-raw: 0 72% 51%;
-  --color-danger-fg-raw: 0 0% 100%;
-  --color-info-raw: 217 91% 60%;
-  --color-info-fg-raw: 0 0% 100%;
+  /* Semantic state — lightened for dark bg */
+  --color-success-raw: 139 40% 58%;        /* #6BBF85 */
+  --color-success-fg-raw: 25 49% 8%;
+  --color-warning-raw: 38 60% 54%;         /* gold-amber */
+  --color-warning-fg-raw: 25 49% 8%;
+  --color-danger-raw: 0 64% 66%;           /* #E07070 */
+  --color-danger-fg-raw: 25 49% 8%;
+  --color-info-raw: 217 70% 65%;
+  --color-info-fg-raw: 25 49% 8%;
 
   /* Brand identity tokens */
-  --brand-paper:   #F5F1EA;
+  --brand-paper:   #2C1A0E;
   --brand-truffle: #2C1A0E;
-  --brand-gold:    #C9A86A;
-  --brand-cream:   #F5E9D3;
-  --brand-forest:  #1F4D3A;
+  --brand-gold:    #C9A84C;
+  --brand-cream:   #F7F4EE;
+  --brand-forest:  #6BBF85;
 
-  /* Accent — forest green replaces purple */
-  --color-accent-brand-raw: 157 43% 20%;
+  /* Accent */
+  --color-accent-brand-raw: 38 60% 54%;
 
-  /* shadcn/ui neutral baseline (TODO Phase 4: align to cockpit palette) */
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* shadcn/ui tokens */
+  --background: #2C1A0E;
+  --foreground: #F7F4EE;
+  --card: #3A2414;
+  --card-foreground: #F7F4EE;
+  --popover: #3A2414;
+  --popover-foreground: #F7F4EE;
+  --primary: #C9A84C;
+  --primary-foreground: #2C1A0E;
+  --secondary: #4A2E1A;
+  --secondary-foreground: #F7F4EE;
+  --muted: #3A2414;
+  --muted-foreground: #C4B8A8;
+  --accent: #4A2E1A;
+  --accent-foreground: #F7F4EE;
+  --destructive: #E07070;
+  --border: #4A2E1A;
+  --input: #4A2E1A;
+  --ring: #C9A84C;
   --radius: 0.625rem;
 }
 
 .dark {
-  /* truffe.ai cockpit tokens (dark) */
-  --color-surface-raw: 240 10% 4%;
-  --color-surface-elevated-raw: 240 6% 8%;
-  --color-surface-sunken-raw: 240 10% 3%;
-  --color-fg-default-raw: 0 0% 98%;
-  --color-fg-muted-raw: 240 5% 65%;
-  --color-border-subtle-raw: 240 4% 16%;
+  /* Identical to :root — always dark truffle */
+  --color-surface-raw: 25 49% 15%;
+  --color-surface-elevated-raw: 25 48% 20%;
+  --color-surface-sunken-raw: 21 62% 6%;
+  --color-fg-default-raw: 40 37% 95%;
+  --color-fg-muted-raw: 34 19% 71%;
+  --color-border-subtle-raw: 25 48% 20%;
 
-  /* Semantic state palette (dark — slightly desaturated) */
-  --color-success-raw: 142 60% 40%;
-  --color-success-fg-raw: 0 0% 100%;
-  --color-warning-raw: 38 85% 45%;
-  --color-warning-fg-raw: 0 0% 10%;
-  --color-danger-raw: 0 65% 48%;
-  --color-danger-fg-raw: 0 0% 100%;
-  --color-info-raw: 217 85% 55%;
-  --color-info-fg-raw: 0 0% 100%;
+  --color-success-raw: 139 40% 58%;
+  --color-success-fg-raw: 25 49% 8%;
+  --color-warning-raw: 38 60% 54%;
+  --color-warning-fg-raw: 25 49% 8%;
+  --color-danger-raw: 0 64% 66%;
+  --color-danger-fg-raw: 25 49% 8%;
+  --color-info-raw: 217 70% 65%;
+  --color-info-fg-raw: 25 49% 8%;
 
-  /* Accent */
-  --color-accent-brand-raw: 262 75% 65%;
+  --color-accent-brand-raw: 38 60% 54%;
 
-  /* shadcn/ui neutral baseline (dark) */
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: #2C1A0E;
+  --foreground: #F7F4EE;
+  --card: #3A2414;
+  --card-foreground: #F7F4EE;
+  --popover: #3A2414;
+  --popover-foreground: #F7F4EE;
+  --primary: #C9A84C;
+  --primary-foreground: #2C1A0E;
+  --secondary: #4A2E1A;
+  --secondary-foreground: #F7F4EE;
+  --muted: #3A2414;
+  --muted-foreground: #C4B8A8;
+  --accent: #4A2E1A;
+  --accent-foreground: #F7F4EE;
+  --destructive: #E07070;
+  --border: #4A2E1A;
+  --input: #4A2E1A;
+  --ring: #C9A84C;
 }
 
 @theme inline {
-  /* truffe.ai cockpit utilities */
+  /* cockpit utilities */
   --color-surface: hsl(var(--color-surface-raw));
   --color-surface-elevated: hsl(var(--color-surface-elevated-raw));
   --color-surface-sunken: hsl(var(--color-surface-sunken-raw));
@@ -121,7 +112,7 @@
   --color-fg-muted: hsl(var(--color-fg-muted-raw));
   --color-border-subtle: hsl(var(--color-border-subtle-raw));
 
-  /* Semantic state utilities */
+  /* semantic state utilities */
   --color-success: hsl(var(--color-success-raw));
   --color-success-fg: hsl(var(--color-success-fg-raw));
   --color-warning: hsl(var(--color-warning-raw));
@@ -132,7 +123,7 @@
   --color-info-fg: hsl(var(--color-info-fg-raw));
   --color-accent-brand: hsl(var(--color-accent-brand-raw));
 
-  /* shadcn/ui utilities (bg-primary, text-foreground, border-input, etc.) */
+  /* shadcn utilities */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -158,8 +149,7 @@
 }
 
 @layer base {
-  html,
-  body {
+  html, body {
     height: 100%;
   }
 

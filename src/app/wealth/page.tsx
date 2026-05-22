@@ -67,24 +67,24 @@ export default async function WealthPage() {
   };
 
   return (
-    <main className="mx-auto max-w-2xl space-y-8 p-6">
+    <div className="space-y-8 px-6 py-8">
       <div>
-        <h1 className="text-xl font-semibold">Wealth</h1>
+        <h1 className="text-xl font-semibold text-[#F7F4EE]">Wealth</h1>
         <p className="text-fg-muted mt-1 text-xs">As of {nw.asOf}</p>
       </div>
 
       {/* Net worth hero */}
-      <div className="border-border-subtle rounded-xl border p-6">
-        <p className="text-fg-muted text-sm">Net worth</p>
-        <p className="mt-1 text-4xl font-bold tracking-tight">{fmt(nw.netWorth)}</p>
+      <div className="rounded-xl border border-[#C9A84C]/40 bg-[#3A2414] p-6 shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+        <p className="text-[#C4B8A8] text-sm">Net worth</p>
+        <p className="mt-1 font-mono text-4xl font-bold tracking-tight text-[#C9A84C]">{fmt(nw.netWorth)}</p>
         <div className="mt-4 flex gap-6 text-sm">
           <div>
-            <p className="text-fg-muted text-xs">Assets</p>
-            <p className="font-medium text-green-600 dark:text-green-400">{fmt(nw.assets)}</p>
+            <p className="text-[#C4B8A8] text-xs">Assets</p>
+            <p className="font-mono font-medium text-[#6BBF85]">{fmt(nw.assets)}</p>
           </div>
           <div>
-            <p className="text-fg-muted text-xs">Liabilities</p>
-            <p className="font-medium text-red-600 dark:text-red-400">{fmt(nw.liabilities)}</p>
+            <p className="text-[#C4B8A8] text-xs">Liabilities</p>
+            <p className="font-mono font-medium text-[#E07070]">{fmt(nw.liabilities)}</p>
           </div>
         </div>
       </div>
@@ -92,14 +92,14 @@ export default async function WealthPage() {
       {/* Breakdown by kind */}
       {Object.entries(nw.byKind).length > 0 && (
         <section className="space-y-2">
-          <h2 className="text-sm font-medium">Breakdown</h2>
-          <div className="divide-border-subtle divide-y rounded-lg border text-sm">
+          <h2 className="text-sm font-medium text-[#C4B8A8]">Breakdown</h2>
+          <div className="divide-y divide-[#4A2E1A] rounded-xl border border-[#4A2E1A] bg-[#3A2414] text-sm overflow-hidden">
             {Object.entries(nw.byKind)
               .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a))
               .map(([kind, amount]) => (
-                <div key={kind} className="flex items-center justify-between px-3 py-2">
-                  <span>{kindLabel[kind] ?? kind}</span>
-                  <span className={amount < 0 ? "text-red-600 dark:text-red-400" : ""}>
+                <div key={kind} className="flex items-center justify-between px-4 py-2.5">
+                  <span className="text-[#F7F4EE]">{kindLabel[kind] ?? kind}</span>
+                  <span className={`font-mono tabular-nums ${amount < 0 ? "text-[#E07070]" : "text-[#F7F4EE]"}`}>
                     {fmt(amount)}
                   </span>
                 </div>
@@ -112,22 +112,22 @@ export default async function WealthPage() {
       {nw.accounts.length > 0 && (
         <section className="space-y-2">
           <h2 className="text-sm font-medium">
-            <a href="/wealth/accounts" className="hover:underline">
+            <a href="/wealth/accounts" className="text-[#6BBF85] hover:underline">
               Accounts →
             </a>
           </h2>
-          <div className="divide-border-subtle divide-y rounded-lg border text-sm">
+          <div className="divide-y divide-[#4A2E1A] rounded-xl border border-[#4A2E1A] bg-[#3A2414] text-sm overflow-hidden">
             {nw.accounts.map((acct) => (
               <a
                 key={acct.id}
                 href={`/wealth/accounts/${acct.id}`}
-                className="flex items-center justify-between px-3 py-2 hover:bg-black/5 dark:hover:bg-white/5"
+                className="flex items-center justify-between px-4 py-3 hover:bg-[#4A2E1A] transition-colors"
               >
                 <div>
-                  <p className="font-medium">{acct.name}</p>
-                  <p className="text-fg-muted text-xs">{acct.currency} · {acct.kind}</p>
+                  <p className="font-medium text-[#F7F4EE]">{acct.name}</p>
+                  <p className="text-[#C4B8A8] text-xs">{acct.currency} · {acct.kind}</p>
                 </div>
-                <span className={acct.balanceNative < 0 ? "text-red-600 dark:text-red-400" : ""}>
+                <span className={`font-mono tabular-nums ${acct.balanceNative < 0 ? "text-[#E07070]" : "text-[#F7F4EE]"}`}>
                   {fmt(acct.balanceNative, acct.currency)}
                 </span>
               </a>
@@ -139,7 +139,7 @@ export default async function WealthPage() {
       {/* Forecast */}
       {forecast.historicalPoints.length > 1 && (
         <section className="space-y-3">
-          <h2 className="text-sm font-medium">Forecast</h2>
+          <h2 className="text-sm font-medium text-[#C4B8A8]">Forecast</h2>
           <ForecastSection
             historicalPoints={forecast.historicalPoints}
             baseMonthlyDelta={forecast.monthlyDelta}
@@ -152,6 +152,6 @@ export default async function WealthPage() {
           />
         </section>
       )}
-    </main>
+    </div>
   );
 }

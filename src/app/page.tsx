@@ -8,6 +8,9 @@ import { getMonthlySummary, monthLabel, prevMonth } from "@/lib/summary";
 import { advisorConversation, PRIMARY_USER_ID, transaction, weeklyDebrief } from "@/lib/db/schema";
 import { env } from "@/env";
 import { Badge } from "@/components/ui/badge";
+import { KpiCard, KpiGrid } from "@/components/kpi-card";
+import { TransactionList, type Transaction } from "@/components/transaction-row";
+import { TrendingUp, Wallet, CreditCard, PiggyBank, MessageSquare } from "lucide-react";
 
 function fmt(minor: number, currency = "EUR") {
   return new Intl.NumberFormat("en-IE", { style: "currency", currency }).format(minor / 100);
@@ -49,7 +52,7 @@ export default async function HomePage() {
     getMonthlySummary(db, prev.year, prev.month),
     db.query.transaction.findMany({
       orderBy: [desc(transaction.startedAt)],
-      limit: 5,
+      limit: 8,
       columns: {
         id: true,
         startedAt: true,
@@ -85,6 +88,17 @@ export default async function HomePage() {
 
   const netDelta = thisMo.net - lastMo.net;
   const hasMonthlyData = thisMo.income > 0 || thisMo.expenses < 0;
+  const savingsRate =
+    thisMo.income > 0 ? Math.round((thisMo.net / thisMo.income) * 100) : null;
+
+  const mappedTxns: Transaction[] = recentTxns.map((txn) => ({
+    id: txn.id,
+    merchant: txn.descriptionRaw || "Unknown",
+    category: txn.categoryId ? (catName.get(txn.categoryId) ?? null) : null,
+    date: txn.startedAt.toISOString(),
+    amountCents: txn.amountNative,
+    currency: txn.currency ?? "EUR",
+  }));
 
   async function createConversationWithQuestion(q: string) {
     "use server";
@@ -102,155 +116,68 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="mx-auto max-w-4xl space-y-6 px-6 py-8">
+    <div className="space-y-6 px-6 py-8">
 
-      {/* ── Net worth hero ── */}
-      <div
-        className="rounded-2xl p-6"
-        style={{ background: "white", boxShadow: "0 4px 24px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04)" }}
-      >
-        <p className="text-xs" style={{ color: "var(--color-fg-muted)", fontFamily: "var(--font-mono)" }}>
-          Net worth · as of {nw.asOf}
-        </p>
-        <div className="mt-2 flex items-end justify-between gap-4 flex-wrap">
-          <p
-            className="tracking-tight"
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontWeight: 700,
-              fontSize: 36,
-              lineHeight: 1,
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            {fmt(nw.netWorth)}
-          </p>
-          {(lastMo.income > 0 || lastMo.expenses < 0) && (
-            <span
-              className="rounded-full px-3 py-1 text-sm font-semibold"
-              style={{
-                background: netDelta >= 0 ? "rgba(31,77,58,0.1)" : "rgba(220,38,38,0.08)",
-                color: netDelta >= 0 ? "var(--brand-forest)" : "#dc2626",
-                fontFamily: "var(--font-mono)",
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {fmtSigned(netDelta)} vs {monthLabel(prev.year, prev.month)}
-            </span>
-          )}
-        </div>
+      {/* Net worth hero */}
+      <KpiCard
+        variant="hero"
+        label={`Net Worth · ${nw.asOf}`}
+        value={fmt(nw.netWorth)}
+        delta={
+          (lastMo.income > 0 || lastMo.expenses < 0)
+            ? `${fmtSigned(netDelta)} vs ${monthLabel(prev.year, prev.month)}`
+            : undefined
+        }
+        deltaDirection={netDelta >= 0 ? "up" : "down"}
+        icon={TrendingUp}
+      />
 
-        <div className="mt-5 flex gap-8 text-sm">
-          <div>
-            <p className="text-xs" style={{ color: "var(--color-fg-muted)" }}>Assets</p>
-            <p className="mt-0.5 font-semibold tabular-nums" style={{ color: "var(--brand-forest)", fontFamily: "var(--font-mono)" }}>
-              {fmt(nw.assets)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs" style={{ color: "var(--color-fg-muted)" }}>Liabilities</p>
-            <p className="mt-0.5 font-semibold tabular-nums text-red-600 dark:text-red-400" style={{ fontFamily: "var(--font-mono)" }}>
-              {fmt(nw.liabilities)}
-            </p>
-          </div>
-        </div>
-
-        {Object.entries(nw.byKind).length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1">
-            {Object.entries(nw.byKind)
-              .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a))
-              .map(([kind, amount]) => (
-                <div key={kind} className="flex items-center gap-1.5 text-xs" style={{ color: "var(--color-fg-muted)" }}>
-                  <span>{kindLabel[kind] ?? kind}</span>
-                  <span
-                    className="font-medium tabular-nums"
-                    style={{
-                      color: amount < 0 ? "#dc2626" : "var(--color-fg-default)",
-                      fontFamily: "var(--font-mono)",
-                    }}
-                  >
-                    {fmt(amount)}
-                  </span>
-                </div>
-              ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── This month ── */}
+      {/* Monthly KPIs */}
       {hasMonthlyData && (
-        <section className="space-y-3">
-          <div className="flex items-baseline justify-between">
-            <h2 style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.02em" }}>This month</h2>
-            <span className="text-xs" style={{ color: "var(--color-fg-muted)", fontFamily: "var(--font-mono)" }}>
-              {monthLabel(curYear, curMonth)}
-            </span>
-          </div>
-
-          <div
-            className="grid grid-cols-3 rounded-xl overflow-hidden text-sm"
-            style={{ border: "1px solid var(--color-border-subtle)", background: "white" }}
-          >
-            <div className="p-4">
-              <p className="text-xs" style={{ color: "var(--color-fg-muted)" }}>Income</p>
-              <p className="mt-1.5 font-semibold" style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" }}>
-                {thisMo.income > 0 ? fmt(thisMo.income) : <span style={{ color: "var(--color-fg-muted)" }}>—</span>}
-              </p>
-            </div>
-            <div className="p-4" style={{ borderLeft: "1px solid var(--color-border-subtle)" }}>
-              <p className="text-xs" style={{ color: "var(--color-fg-muted)" }}>Spending</p>
-              <p className="mt-1.5 font-semibold" style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" }}>
-                {fmt(Math.abs(thisMo.expenses))}
-              </p>
-            </div>
-            <div className="p-4" style={{ borderLeft: "1px solid var(--color-border-subtle)" }}>
-              <p className="text-xs" style={{ color: "var(--color-fg-muted)" }}>Net</p>
-              <p
-                className="mt-1.5 font-semibold"
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontVariantNumeric: "tabular-nums",
-                  color: thisMo.net >= 0 ? "var(--brand-forest)" : "#dc2626",
-                }}
-              >
-                {fmtSigned(thisMo.net)}
-              </p>
-            </div>
-          </div>
-
-          {thisMo.topCategories.length > 0 && (
-            <div
-              className="rounded-xl p-4 space-y-2"
-              style={{ border: "1px solid var(--color-border-subtle)", background: "white" }}
-            >
-              <p className="text-xs font-medium" style={{ color: "var(--color-fg-muted)" }}>Top spending</p>
-              {thisMo.topCategories.map((cat) => (
-                <div key={cat.id} className="flex items-center justify-between text-sm">
-                  <span style={{ color: "var(--color-fg-muted)" }}>{catName.get(cat.id) ?? cat.name}</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" }}>
-                    {fmt(Math.abs(cat.amount))}
-                  </span>
-                </div>
-              ))}
-            </div>
+        <KpiGrid>
+          <KpiCard
+            label="Income"
+            value={thisMo.income > 0 ? fmt(thisMo.income) : "—"}
+            delta={lastMo.income > 0 ? `${fmtSigned(thisMo.income - lastMo.income)} vs last mo` : undefined}
+            deltaDirection={thisMo.income >= lastMo.income ? "up" : "down"}
+            icon={Wallet}
+          />
+          <KpiCard
+            label="Spending"
+            value={fmt(Math.abs(thisMo.expenses))}
+            delta={lastMo.expenses < 0 ? `${fmtSigned(Math.abs(thisMo.expenses) - Math.abs(lastMo.expenses))} vs last mo` : undefined}
+            deltaDirection={Math.abs(thisMo.expenses) <= Math.abs(lastMo.expenses) ? "up" : "down"}
+            icon={CreditCard}
+          />
+          <KpiCard
+            label="Net"
+            value={fmt(thisMo.net)}
+            delta={lastMo.income > 0 ? `${fmtSigned(netDelta)} vs last mo` : undefined}
+            deltaDirection={thisMo.net >= 0 ? "up" : "down"}
+            icon={TrendingUp}
+          />
+          {savingsRate !== null && (
+            <KpiCard
+              label="Savings Rate"
+              value={`${savingsRate}%`}
+              icon={PiggyBank}
+              deltaDirection={savingsRate >= 20 ? "up" : savingsRate >= 0 ? "neutral" : "down"}
+            />
           )}
-        </section>
+        </KpiGrid>
       )}
 
-      {/* ── Weekly debrief ── */}
+      {/* Weekly debrief */}
       {latestDebrief && (
         <section className="space-y-3">
           <div className="flex items-baseline justify-between">
-            <h2 style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.02em" }}>Weekly debrief</h2>
-            <span className="text-xs" style={{ color: "var(--color-fg-muted)", fontFamily: "var(--font-mono)" }}>
+            <h2 className="text-[18px] font-semibold tracking-tight text-[#F7F4EE]">Weekly debrief</h2>
+            <span className="font-mono text-xs text-[#6B5040]">
               {latestDebrief.weekStart} – {latestDebrief.weekEnd}
             </span>
           </div>
-          <div
-            className="rounded-xl p-4 space-y-3"
-            style={{ border: "1px solid var(--color-border-subtle)", background: "white" }}
-          >
-            <p className="text-sm leading-relaxed">{latestDebrief.narrativeText}</p>
+          <div className="rounded-xl border border-[#4A2E1A] bg-[#3A2414] p-4 shadow-[0_1px_4px_rgba(0,0,0,0.3)] space-y-3">
+            <p className="text-sm leading-relaxed text-[#F7F4EE]">{latestDebrief.narrativeText}</p>
             {latestDebrief.flags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {latestDebrief.flags.map((flag, i) => (
@@ -260,16 +187,16 @@ export default async function HomePage() {
                     style={{
                       background:
                         flag.kind === "spending_spike" || flag.kind === "budget_overrun"
-                          ? "rgba(220,38,38,0.08)"
+                          ? "rgba(224,112,112,0.15)"
                           : flag.kind === "spending_drop"
-                            ? "rgba(31,77,58,0.1)"
-                            : "rgba(201,168,106,0.15)",
+                            ? "rgba(107,191,133,0.15)"
+                            : "rgba(201,168,76,0.15)",
                       color:
                         flag.kind === "spending_spike" || flag.kind === "budget_overrun"
-                          ? "#dc2626"
+                          ? "#E07070"
                           : flag.kind === "spending_drop"
-                            ? "var(--brand-forest)"
-                            : "var(--brand-truffle)",
+                            ? "#6BBF85"
+                            : "#C9A84C",
                     }}
                     title={flag.message}
                   >
@@ -287,105 +214,53 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* ── Next actions ── */}
+      {/* Next actions */}
       {uncategorizedCount > 0 && (
         <section className="space-y-2">
-          <h2 style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.02em" }}>Next actions</h2>
+          <h2 className="text-[18px] font-semibold tracking-tight text-[#F7F4EE]">Next actions</h2>
           <a
             href="/transactions/inbox"
-            className="flex items-center justify-between rounded-xl p-4 transition-colors hover:brightness-95"
-            style={{ border: "1px solid var(--color-border-subtle)", background: "white" }}
+            className="flex items-center justify-between rounded-xl border border-[#4A2E1A] bg-[#3A2414] p-4 transition-colors hover:bg-[#4A2E1A]"
           >
             <div>
-              <p className="text-sm font-medium">Categorize transactions</p>
-              <p className="text-xs mt-0.5" style={{ color: "var(--color-fg-muted)" }}>
-                {uncategorizedCount} uncategorized
-              </p>
+              <p className="text-sm font-medium text-[#F7F4EE]">Categorize transactions</p>
+              <p className="mt-0.5 text-xs text-[#C4B8A8]">{uncategorizedCount} uncategorized</p>
             </div>
             <Badge variant="warning">{uncategorizedCount}</Badge>
           </a>
         </section>
       )}
 
-      {/* ── Recent transactions ── */}
-      {recentTxns.length > 0 && (
+      {/* Recent transactions */}
+      {mappedTxns.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-baseline justify-between">
-            <h2 style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.02em" }}>
-              Recent transactions
-            </h2>
-            <a
-              href="/transactions"
-              className="text-xs hover:underline"
-              style={{ color: "var(--brand-forest)" }}
-            >
+            <h2 className="text-[18px] font-semibold tracking-tight text-[#F7F4EE]">Recent transactions</h2>
+            <a href="/transactions" className="text-xs text-[#6BBF85] hover:underline">
               View all →
             </a>
           </div>
-          <div
-            className="rounded-xl overflow-hidden"
-            style={{ border: "1px solid var(--color-border-subtle)", background: "white" }}
-          >
-            {recentTxns.map((txn, i) => (
-              <div
-                key={txn.id}
-                className="flex items-center justify-between px-4 py-3"
-                style={i > 0 ? { borderTop: "1px solid var(--color-border-subtle)" } : {}}
-              >
-                <div className="min-w-0">
-                  <p className="text-sm truncate font-medium">{txn.descriptionRaw || "—"}</p>
-                  <p className="text-xs mt-0.5" style={{ color: "var(--color-fg-muted)", fontFamily: "var(--font-mono)" }}>
-                    {new Date(txn.startedAt).toLocaleDateString("en-IE")}
-                    {txn.categoryId
-                      ? ` · ${catName.get(txn.categoryId) ?? ""}`
-                      : <span style={{ color: "var(--brand-gold)" }}> · uncategorized</span>}
-                  </p>
-                </div>
-                <span
-                  className="shrink-0 ml-4 text-sm font-semibold"
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontVariantNumeric: "tabular-nums",
-                    color: txn.amountNative < 0 ? "#dc2626" : "var(--brand-forest)",
-                  }}
-                >
-                  {fmt(txn.amountNative, txn.currency)}
-                </span>
-              </div>
-            ))}
-          </div>
+          <TransactionList transactions={mappedTxns} />
         </section>
       )}
 
-      {/* ── Ask your advisor ── */}
+      {/* Ask your advisor */}
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
-          <h2 style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.02em" }}>Ask your advisor</h2>
-          <a href="/advisor" className="text-xs hover:underline" style={{ color: "var(--brand-forest)" }}>
+          <h2 className="text-[18px] font-semibold tracking-tight text-[#F7F4EE]">Ask your advisor</h2>
+          <a href="/advisor" className="text-xs text-[#6BBF85] hover:underline">
             Open advisor →
           </a>
         </div>
-        <div
-          className="rounded-xl overflow-hidden"
-          style={{ border: "1px solid var(--color-border-subtle)", background: "white" }}
-        >
-          {(
-            [
-              "How did I do this month?",
-              "Am I on track with my budget?",
-              "What are my biggest subscriptions costing me?",
-            ] as const
-          ).map((q, i) => (
+        <div className="rounded-xl border border-[#4A2E1A] bg-[#3A2414] overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+          {(["How did I do this month?", "Am I on track with my budget?", "What are my biggest subscriptions costing me?"] as const).map((q, i) => (
             <form key={q} action={createConversationWithQuestion.bind(null, q)}>
               <button
                 type="submit"
-                className="w-full px-4 py-3 text-left text-sm transition-colors hover:brightness-95"
-                style={{
-                  color: "var(--color-fg-muted)",
-                  borderTop: i > 0 ? "1px solid var(--color-border-subtle)" : undefined,
-                  background: "transparent",
-                }}
+                className="group flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-[#C4B8A8] transition-colors hover:bg-[#4A2E1A] hover:text-[#F7F4EE]"
+                style={i > 0 ? { borderTop: "1px solid #4A2E1A" } : {}}
               >
+                <MessageSquare className="h-4 w-4 shrink-0 text-[#C9A84C]" strokeWidth={1.75} />
                 {q}
               </button>
             </form>
@@ -393,6 +268,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-    </main>
+    </div>
   );
 }
