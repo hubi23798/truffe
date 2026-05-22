@@ -37,8 +37,15 @@
   --color-info-raw: 217 91% 60%;
   --color-info-fg-raw: 0 0% 100%;
 
-  /* Accent */
-  --color-accent-brand-raw: 262 80% 60%;
+  /* Brand identity tokens */
+  --brand-paper:   #F5F1EA;
+  --brand-truffle: #2C1A0E;
+  --brand-gold:    #C9A86A;
+  --brand-cream:   #F5E9D3;
+  --brand-forest:  #1F4D3A;
+
+  /* Accent — forest green replaces purple */
+  --color-accent-brand-raw: 157 43% 20%;
 
   /* shadcn/ui neutral baseline (TODO Phase 4: align to cockpit palette) */
   --background: oklch(1 0 0);

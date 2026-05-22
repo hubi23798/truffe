@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Route } from "next";
 import { LogoutButton } from "@/components/logout-button";
+import { TruffleMark } from "@/components/truffle-mark";
 
 const links = [
   { href: "/", label: "Home" },
@@ -26,8 +27,11 @@ export function Nav() {
   return (
     <header className="border-border-subtle bg-surface sticky top-0 z-10 border-b">
       <div className="mx-auto flex max-w-2xl items-center gap-1 px-4 py-2">
-        <Link href={"/" as Route} className="mr-4 text-sm font-bold tracking-tight text-fg-default">
-          truffe.ai
+        <Link href={"/" as Route} className="mr-4 flex items-center gap-2.5 group">
+          <TruffleMark size={28} small />
+          <span style={{ fontFamily: "Inter, system-ui, sans-serif", fontWeight: 800, fontSize: 18, letterSpacing: "-0.003em", lineHeight: 1, color: "var(--color-fg-default)" }}>
+            truffe<span style={{ color: "var(--brand-gold)", transition: "color 0.15s" }} className="group-hover:text-[var(--brand-forest)]">.</span>ai
+          </span>
         </Link>
         <nav className="flex flex-1 items-center gap-1 overflow-x-auto">
           {links.map((l) => (

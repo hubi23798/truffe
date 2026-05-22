@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "truffe.ai",
-  description: "truffe.ai — personal finance dashboard and advisor",
+  description: "your money's second brain",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -23,8 +23,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: light)", color: "#F5F1EA" },
+    { media: "(prefers-color-scheme: dark)", color: "#0E0F0E" },
   ],
   width: "device-width",
   initialScale: 1,
