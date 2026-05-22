@@ -165,5 +165,11 @@
 
   body {
     @apply bg-surface text-fg-default antialiased;
+    font-family: var(--font-manrope), system-ui, sans-serif;
+    background-color: var(--brand-paper);
+  }
+
+  .font-mono, [class*="tabular-nums"] {
+    font-family: var(--font-mono), ui-monospace, monospace;
   }
 }

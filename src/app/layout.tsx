@@ -1,7 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { Manrope, JetBrains_Mono, Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Nav } from "@/components/nav";
 import "./globals.css";
+
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope" });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "truffe.ai",
@@ -34,7 +39,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${manrope.variable} ${jetbrainsMono.variable} ${inter.variable}`}>
       <body>
         <ThemeProvider>
           <Nav />
