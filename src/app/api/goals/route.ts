@@ -9,12 +9,14 @@ import { env } from "@/env";
 import { getLatestBalances } from "@/lib/goals/balance";
 import { calculateGoalProgress } from "@/lib/goals/progress";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const createSchema = z.object({
   name: z.string().min(1).max(100),
   kind: z.enum(["cash_target", "emergency_fund", "debt_payoff", "portfolio_target"]),
   targetAmount: z.number().int().positive(),
   targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  linkedAccountIds: z.array(z.string().uuid()).min(1),
+  linkedAccountIds: z.array(z.string().regex(UUID_RE)).min(1),
 });
 
 export async function GET() {

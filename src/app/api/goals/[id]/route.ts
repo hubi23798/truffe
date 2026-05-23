@@ -14,7 +14,7 @@ const patchSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   targetAmount: z.number().int().positive().optional(),
   targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-  linkedAccountIds: z.array(z.string().uuid()).min(1).optional(),
+  linkedAccountIds: z.array(z.string().regex(UUID_RE)).min(1).optional(),
 });
 
 export async function PATCH(
