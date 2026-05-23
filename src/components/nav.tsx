@@ -40,19 +40,20 @@ function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
   return (
     <Link
       href={item.href as Route}
+      aria-current={isActive ? "page" : undefined}
       className={cn(
-        "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+        "group relative flex items-center gap-3 rounded-md px-3 py-2 text-body-strong",
+        "transition-colors duration-150",
         "border-l-[3px] pl-[9px]",
         isActive
-          ? "bg-[#3A2414] text-[#F7F4EE] border-[#C9A84C]"
-          : "text-[#C4B8A8] border-transparent hover:bg-[#3A2414] hover:text-[#F7F4EE]",
+          ? "bg-card text-fg-default border-gold"
+          : "text-fg-muted border-transparent hover:bg-card hover:text-fg-default",
       )}
-      aria-current={isActive ? "page" : undefined}
     >
       <Icon
         className={cn(
           "h-4 w-4 shrink-0 transition-colors duration-150",
-          isActive ? "text-[#C9A84C]" : "text-[#6B5040] group-hover:text-[#C4B8A8]",
+          isActive ? "text-gold" : "text-fg-subtle group-hover:text-fg-muted",
         )}
         strokeWidth={1.75}
         aria-hidden="true"
@@ -73,13 +74,14 @@ function SignOutItem() {
         window.location.href = "/login";
       }}
       className={cn(
-        "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+        "group flex w-full items-center gap-3 rounded-md px-3 py-2 text-body-strong",
+        "transition-colors duration-150",
         "border-l-[3px] border-transparent pl-[9px]",
-        "text-[#C4B8A8] hover:bg-[#3A2414] hover:text-[#F7F4EE] disabled:opacity-50",
+        "text-fg-muted hover:bg-card hover:text-fg-default disabled:opacity-50",
       )}
     >
       <LogOut
-        className="h-4 w-4 shrink-0 text-[#6B5040] group-hover:text-[#C4B8A8] transition-colors duration-150"
+        className="h-4 w-4 shrink-0 text-fg-subtle group-hover:text-fg-muted transition-colors duration-150"
         strokeWidth={1.75}
         aria-hidden="true"
       />
@@ -108,7 +110,7 @@ export function SidebarNav({ className }: { className?: string }) {
     <aside
       className={cn(
         "flex h-full w-[220px] shrink-0 flex-col",
-        "bg-[#1A0D06] border-r border-[#3A2414]",
+        "bg-sidebar border-r border-line",
         className,
       )}
     >
@@ -116,17 +118,10 @@ export function SidebarNav({ className }: { className?: string }) {
       <div className="flex items-center gap-3 px-4 py-5">
         <TruffleMark size={28} small />
         <span
-          style={{
-            fontFamily: "Inter, system-ui, sans-serif",
-            fontWeight: 800,
-            fontSize: 17,
-            letterSpacing: "-0.03em",
-            lineHeight: 1,
-            color: "#F7F4EE",
-          }}
+          className="text-fg-default text-[17px] font-extrabold leading-none tracking-[-0.03em]"
           aria-label="truffe.ai"
         >
-          truffe<span style={{ color: "#C9A84C" }}>.ai</span>
+          truffe<span className="text-gold">.ai</span>
         </span>
       </div>
 
@@ -142,7 +137,7 @@ export function SidebarNav({ className }: { className?: string }) {
 
       {/* Utility + sign out */}
       <div
-        className="flex flex-col gap-0.5 border-t border-[#3A2414] px-2 py-3"
+        className="flex flex-col gap-0.5 border-t border-line px-2 py-3"
         aria-label="Utility navigation"
       >
         {UTILITY_LINKS.map((item) => (
@@ -156,11 +151,9 @@ export function SidebarNav({ className }: { className?: string }) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: "var(--brand-paper)" }}>
+    <div className="flex h-screen overflow-hidden bg-page">
       <SidebarNav />
-      <main className="flex flex-1 flex-col overflow-y-auto">
-        {children}
-      </main>
+      <main className="flex flex-1 flex-col overflow-y-auto">{children}</main>
     </div>
   );
 }

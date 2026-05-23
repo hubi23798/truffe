@@ -1,52 +1,86 @@
 @import "tailwindcss";
 
-/* Class-based dark mode: dark: variant fires when an ancestor (or self) has .dark */
+/* Class-based dark mode (kept for next-themes compat — always-dark anyway) */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * truffe.ai — dark truffle theme
- * Background: #2C1A0E  Surface/card: #3A2414  Border: #4A2E1A
- * Text: #F7F4EE         Muted: #C4B8A8         Gold: #C9A84C
- * Green: #6BBF85        Red: #E07070
+ * truffe.ai — Design System v3 (dark truffle)
+ *
+ *   PAGE     #2C1A0E   CARD       #3A2414   ELEVATED   #4A2E1A
+ *   SIDEBAR  #1A0D06   SUNKEN     #1F1208   BORDER     #4A2E1A
+ *   TEXT     #F7F4EE   MUTED      #C4B8A8   SUBTLE     #6B5040
+ *   GOLD     #C9A84C   GREEN      #6BBF85   AMBER      #E8A350   RED #E07070
+ *
+ *   Fonts: Inter (body) · JetBrains Mono (numbers, tabular)
+ *   Radius: 6 · 8 · 12 · 16 · 20 · full
+ *   Spacing: 4 · 8 · 12 · 16 · 24 · 32 · 48 · 64
+ *   Motion: 100 · 150 · 250 · 400ms · cubic-bezier(.4,0,.2,1)
  */
 
 :root {
   color-scheme: dark;
 
-  /* truffe.ai cockpit tokens */
-  --color-surface-raw: 25 49% 15%;         /* #3A2414 — card / panel */
-  --color-surface-elevated-raw: 25 48% 20%; /* #4A2E1A — hover / depth */
-  --color-surface-sunken-raw: 21 62% 6%;   /* #1A0D06 — sidebar depth */
-  --color-fg-default-raw: 40 37% 95%;      /* #F7F4EE — warm cream */
-  --color-fg-muted-raw: 34 19% 71%;        /* #C4B8A8 — warm taupe */
-  --color-border-subtle-raw: 25 48% 20%;   /* #4A2E1A — warm dark border */
+  /* ── Semantic color tokens (the binding contract) ─────────────────────── *
+   * Naming: utility classes read as the property + token name.
+   *   bg-page   bg-card   bg-elevated   bg-sunken   bg-sidebar
+   *   text-fg-default   text-fg-muted   text-fg-subtle
+   *   border-line   border-line-strong
+   *   text-gold   bg-gold   border-gold   (same for success/warning/danger)
+   */
+  --color-page:        #2C1A0E;
+  --color-sidebar:     #1A0D06;
+  --color-card:        #3A2414;
+  --color-elevated:    #4A2E1A;
+  --color-sunken:      #1F1208;
+  --color-line:        #4A2E1A;
+  --color-line-strong: #5A3820;
 
-  /* Semantic state — lightened for dark bg */
-  --color-success-raw: 139 40% 58%;        /* #6BBF85 */
-  --color-success-fg-raw: 25 49% 8%;
-  --color-warning-raw: 38 60% 54%;         /* gold-amber */
-  --color-warning-fg-raw: 25 49% 8%;
-  --color-danger-raw: 0 64% 66%;           /* #E07070 */
-  --color-danger-fg-raw: 25 49% 8%;
-  --color-info-raw: 217 70% 65%;
-  --color-info-fg-raw: 25 49% 8%;
+  --color-fg-default:  #F7F4EE;
+  --color-fg-muted:    #C4B8A8;
+  --color-fg-subtle:   #6B5040;
 
-  /* Brand identity tokens */
+  --color-gold:        #C9A84C;
+  --color-gold-hover:  #D4B55C;
+  --color-success:     #6BBF85;
+  --color-warning:     #E8A350;
+  --color-danger:      #E07070;
+
+  /* Tinted state backgrounds (use with text-{gold|success|warning|danger}) */
+  --color-gold-bg:     rgba(201, 168, 76, 0.12);
+  --color-success-bg:  rgba(107, 191, 133, 0.12);
+  --color-warning-bg:  rgba(232, 163, 80, 0.12);
+  --color-danger-bg:   rgba(224, 112, 112, 0.12);
+
+  /* Brand tokens (consumed by truffle-mark and wordmark) */
   --brand-paper:   #2C1A0E;
   --brand-truffle: #2C1A0E;
   --brand-gold:    #C9A84C;
   --brand-cream:   #F7F4EE;
   --brand-forest:  #6BBF85;
 
-  /* Accent */
-  --color-accent-brand-raw: 38 60% 54%;
+  /* ── Cockpit raw HSL tokens (kept for shadcn primitives) ───────────────── */
+  --color-surface-raw:           25 49% 15%;   /* #3A2414 */
+  --color-surface-elevated-raw:  25 48% 20%;   /* #4A2E1A */
+  --color-surface-sunken-raw:    21 62% 6%;    /* #1A0D06 */
+  --color-fg-default-raw:        40 37% 95%;
+  --color-fg-muted-raw:          34 19% 71%;
+  --color-border-subtle-raw:     25 48% 20%;
+  --color-success-raw:           139 40% 58%;
+  --color-success-fg-raw:        25 49% 8%;
+  --color-warning-raw:           30 79% 60%;
+  --color-warning-fg-raw:        25 49% 8%;
+  --color-danger-raw:            0 64% 66%;
+  --color-danger-fg-raw:         25 49% 8%;
+  --color-info-raw:              217 70% 65%;
+  --color-info-fg-raw:           25 49% 8%;
+  --color-accent-brand-raw:      38 60% 54%;
 
-  /* shadcn/ui tokens */
+  /* ── shadcn/ui mapping ─────────────────────────────────────────────────── */
   --background: #2C1A0E;
   --foreground: #F7F4EE;
   --card: #3A2414;
   --card-foreground: #F7F4EE;
-  --popover: #3A2414;
+  --popover: #4A2E1A;
   --popover-foreground: #F7F4EE;
   --primary: #C9A84C;
   --primary-foreground: #2C1A0E;
@@ -60,34 +94,51 @@
   --border: #4A2E1A;
   --input: #4A2E1A;
   --ring: #C9A84C;
-  --radius: 0.625rem;
 }
 
 .dark {
-  /* Identical to :root — always dark truffle */
+  /* Always-dark: mirror :root so system-dark users get the same palette */
+  --color-page: #2C1A0E;
+  --color-sidebar: #1A0D06;
+  --color-card: #3A2414;
+  --color-elevated: #4A2E1A;
+  --color-sunken: #1F1208;
+  --color-line: #4A2E1A;
+  --color-line-strong: #5A3820;
+  --color-fg-default: #F7F4EE;
+  --color-fg-muted: #C4B8A8;
+  --color-fg-subtle: #6B5040;
+  --color-gold: #C9A84C;
+  --color-gold-hover: #D4B55C;
+  --color-success: #6BBF85;
+  --color-warning: #E8A350;
+  --color-danger: #E07070;
+  --color-gold-bg: rgba(201, 168, 76, 0.12);
+  --color-success-bg: rgba(107, 191, 133, 0.12);
+  --color-warning-bg: rgba(232, 163, 80, 0.12);
+  --color-danger-bg: rgba(224, 112, 112, 0.12);
+
   --color-surface-raw: 25 49% 15%;
   --color-surface-elevated-raw: 25 48% 20%;
   --color-surface-sunken-raw: 21 62% 6%;
   --color-fg-default-raw: 40 37% 95%;
   --color-fg-muted-raw: 34 19% 71%;
   --color-border-subtle-raw: 25 48% 20%;
-
   --color-success-raw: 139 40% 58%;
   --color-success-fg-raw: 25 49% 8%;
-  --color-warning-raw: 38 60% 54%;
+  --color-warning-raw: 30 79% 60%;
   --color-warning-fg-raw: 25 49% 8%;
   --color-danger-raw: 0 64% 66%;
   --color-danger-fg-raw: 25 49% 8%;
   --color-info-raw: 217 70% 65%;
   --color-info-fg-raw: 25 49% 8%;
-
   --color-accent-brand-raw: 38 60% 54%;
 
   --background: #2C1A0E;
   --foreground: #F7F4EE;
   --card: #3A2414;
   --card-foreground: #F7F4EE;
-  --popover: #3A2414;
+  --popover: #4A2E1A;
   --popover-foreground: #F7F4EE;
   --primary: #C9A84C;
   --primary-foreground: #2C1A0E;
@@ -104,7 +155,35 @@
 }
 
 @theme inline {
-  /* cockpit utilities */
+  /* ── Fonts ────────────────────────────────────────────────────────────── */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ── Semantic color utilities ────────────────────────────────────────── */
+  --color-page: var(--color-page);
+  --color-sidebar: var(--color-sidebar);
+  --color-card: var(--color-card);
+  --color-elevated: var(--color-elevated);
+  --color-sunken: var(--color-sunken);
+  --color-line: var(--color-line);
+  --color-line-strong: var(--color-line-strong);
+
+  --color-fg-default: var(--color-fg-default);
+  --color-fg-muted: var(--color-fg-muted);
+  --color-fg-subtle: var(--color-fg-subtle);
+
+  --color-gold: var(--color-gold);
+  --color-gold-hover: var(--color-gold-hover);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-danger: var(--color-danger);
+
+  --color-gold-bg: var(--color-gold-bg);
+  --color-success-bg: var(--color-success-bg);
+  --color-warning-bg: var(--color-warning-bg);
+  --color-danger-bg: var(--color-danger-bg);
+
+  /* Cockpit utilities (legacy classes still used by some pages) */
   --color-surface: hsl(var(--color-surface-raw));
   --color-surface-elevated: hsl(var(--color-surface-elevated-raw));
   --color-surface-sunken: hsl(var(--color-surface-sunken-raw));
@@ -112,12 +191,8 @@
   --color-fg-muted: hsl(var(--color-fg-muted-raw));
   --color-border-subtle: hsl(var(--color-border-subtle-raw));
 
-  /* semantic state utilities */
-  --color-success: hsl(var(--color-success-raw));
   --color-success-fg: hsl(var(--color-success-fg-raw));
-  --color-warning: hsl(var(--color-warning-raw));
   --color-warning-fg: hsl(var(--color-warning-fg-raw));
-  --color-danger: hsl(var(--color-danger-raw));
   --color-danger-fg: hsl(var(--color-danger-fg-raw));
   --color-info: hsl(var(--color-info-raw));
   --color-info-fg: hsl(var(--color-info-fg-raw));
@@ -126,7 +201,7 @@
   /* shadcn utilities */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-card: var(--card);
+  --color-card-bg: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
@@ -142,10 +217,24 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+
+  /* ── Radius scale (overrides Tailwind defaults) ──────────────────────── */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius: 12px;
+
+  /* ── Shadow scale (warm-on-dark) ─────────────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.30), 0 1px 2px rgba(0, 0, 0, 0.20);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.20);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.40), 0 4px 12px rgba(0, 0, 0, 0.25);
+
+  /* ── Motion ──────────────────────────────────────────────────────────── */
+  --default-transition-duration: 150ms;
+  --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @layer base {
@@ -154,12 +243,106 @@
   }
 
   body {
-    @apply bg-surface text-fg-default antialiased;
-    font-family: var(--font-manrope), system-ui, sans-serif;
-    background-color: var(--brand-paper);
+    background-color: var(--color-page);
+    color: var(--color-fg-default);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
+  /* Tabular nums use mono everywhere by default */
   .font-mono, [class*="tabular-nums"] {
-    font-family: var(--font-mono), ui-monospace, monospace;
+    font-family: var(--font-mono);
+  }
+
+  /* Focus ring — gold, not browser default */
+  *:focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Scrollbar — warm, narrow */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-elevated);
+    border-radius: 9999px;
+    border: 2px solid var(--color-page);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-line-strong); }
+}
+
+@layer utilities {
+  /* ── Typography utilities (the design system's binding contract) ─────── */
+  .text-display {
+    font-family: var(--font-mono);
+    font-size: 32px;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .text-display-sm {
+    font-family: var(--font-mono);
+    font-size: 26px;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .text-h1 {
+    font-family: var(--font-sans);
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .text-h2 {
+    font-family: var(--font-sans);
+    font-size: 18px;
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .text-body {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+  .text-body-strong {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 600;
+  }
+  .text-caption {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .text-mono {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Gold glow (for hero card, focused CTA) ──────────────────────────── */
+  .shadow-glow-gold {
+    box-shadow: 0 0 24px rgba(201, 168, 76, 0.18);
+  }
+  .shadow-md-glow {
+    box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.30),
+      0 1px 2px rgba(0, 0, 0, 0.20),
+      0 0 24px rgba(201, 168, 76, 0.15);
   }
 }

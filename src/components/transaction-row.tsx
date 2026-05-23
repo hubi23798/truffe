@@ -102,8 +102,8 @@ export function TransactionRow({
         }
       }}
       className={cn(
-        "group flex items-center gap-3 px-4 py-3",
-        "transition-colors duration-100 hover:bg-[#4A2E1A]",
+        "group flex items-center gap-4 px-4 py-3 transition-colors duration-100",
+        "hover:bg-elevated",
         pending && "opacity-60",
         onClick && "cursor-pointer",
         className,
@@ -111,28 +111,25 @@ export function TransactionRow({
     >
       {/* Merchant avatar */}
       <div
-        className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg select-none",
-          "bg-[#4A2E1A] text-[13px] font-bold text-[#C4B8A8]",
-        )}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-elevated text-[13px] font-bold text-fg-muted select-none"
         aria-hidden="true"
       >
         {categoryEmoji ?? merchantInitials(merchant)}
       </div>
 
       {/* Main info */}
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              "truncate text-[14px] font-semibold leading-tight",
-              pending ? "text-[#C4B8A8]" : "text-[#F7F4EE]",
+              "truncate text-body-strong leading-tight",
+              pending ? "text-fg-muted" : "text-fg-default",
             )}
           >
             {merchant}
           </span>
           {pending && (
-            <span className="flex items-center gap-1 rounded-full bg-[#4A2E1A] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#C4B8A8]">
+            <span className="text-caption flex items-center gap-1 rounded-full bg-elevated px-2 py-0.5 text-fg-muted">
               <Clock className="h-2.5 w-2.5" aria-hidden="true" />
               Pending
             </span>
@@ -145,9 +142,9 @@ export function TransactionRow({
               <Select onValueChange={handleCategoryChange}>
                 <SelectTrigger
                   className={cn(
-                    "h-6 rounded-full border-dashed border-[#C9A84C]/60 bg-transparent",
-                    "px-2 text-[11px] font-semibold text-[#C9A84C]",
-                    "hover:bg-[#C9A84C]/10 focus:ring-[#C9A84C]/30",
+                    "h-6 rounded-full border border-dashed border-gold/60 bg-transparent",
+                    "px-2 text-[11px] font-semibold text-gold",
+                    "hover:bg-gold-bg",
                   )}
                   aria-label="Assign category"
                 >
@@ -156,17 +153,19 @@ export function TransactionRow({
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           ) : (
-            <span className="rounded-full bg-[#4A2E1A] px-2 py-0.5 text-[11px] font-medium text-[#C4B8A8]">
+            <span className="rounded-full bg-elevated px-2 py-0.5 text-[11px] font-medium text-fg-muted">
               {localCategory}
             </span>
           )}
-          {account && <span className="text-[11px] text-[#6B5040]">{account}</span>}
+          {account && <span className="text-[11px] text-fg-subtle">{account}</span>}
         </div>
       </div>
 
@@ -175,19 +174,19 @@ export function TransactionRow({
         <span
           className={cn(
             "font-mono text-[14px] font-bold tabular-nums leading-tight",
-            isCredit ? "text-[#6BBF85]" : "text-[#F7F4EE]",
+            isCredit ? "text-success" : "text-fg-default",
           )}
           aria-label={`${isCredit ? "Credit" : "Debit"}: ${formatAmount(amountCents, currency)}`}
         >
           {formatAmount(amountCents, currency)}
         </span>
-        <span className="text-[11px] text-[#6B5040]">{formatDate(date)}</span>
+        <span className="text-[11px] text-fg-subtle">{formatDate(date)}</span>
       </div>
 
       {/* Hover chevron */}
       {onClick && (
         <ChevronRight
-          className="h-4 w-4 shrink-0 text-[#4A2E1A] opacity-0 transition-opacity duration-100 group-hover:opacity-100"
+          className="h-4 w-4 shrink-0 text-line opacity-0 transition-opacity duration-100 group-hover:opacity-100"
           aria-hidden="true"
         />
       )}
@@ -222,23 +221,21 @@ export function TransactionList({
   return (
     <div
       className={cn(
-        "rounded-xl border border-[#4A2E1A] bg-[#3A2414]",
-        "shadow-[0_1px_4px_rgba(0,0,0,0.3)]",
-        "overflow-hidden",
+        "rounded-lg border border-line bg-card shadow-sm overflow-hidden",
         className,
       )}
     >
       {Object.entries(groups).map(([dateLabel, txs], groupIdx) => (
         <div key={dateLabel}>
-          <div className="sticky top-0 z-10 flex items-center justify-between bg-[#2C1A0E] px-4 py-2">
-            <span className="text-[11px] font-bold uppercase tracking-[0.07em] text-[#6B5040]">
-              {dateLabel}
-            </span>
-            <span className="font-mono text-[11px] font-semibold text-[#6B5040]">
+          {/* Date group header */}
+          <div className="sticky top-0 z-10 flex items-center justify-between bg-page px-4 py-2">
+            <span className="text-caption text-fg-subtle">{dateLabel}</span>
+            <span className="font-mono text-[11px] font-semibold text-fg-subtle tabular-nums">
               {formatAmount(txs.reduce((sum, tx) => sum + tx.amountCents, 0), txs[0]?.currency)}
             </span>
           </div>
 
+          {/* Rows */}
           {txs.map((tx, rowIdx) => (
             <div key={tx.id}>
               <TransactionRow
@@ -248,7 +245,7 @@ export function TransactionList({
                 onClick={onTransactionClick}
               />
               {!(rowIdx === txs.length - 1 && groupIdx === Object.keys(groups).length - 1) && (
-                <div className="mx-4 border-b border-[#4A2E1A]" aria-hidden="true" />
+                <div className="mx-4 border-b border-line" aria-hidden="true" />
               )}
             </div>
           ))}
