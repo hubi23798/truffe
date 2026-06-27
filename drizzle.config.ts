@@ -1,12 +1,10 @@
-import type { Config } from "drizzle-kit";
+import { defineConfig } from "drizzle-kit";
 
-export default {
+export default defineConfig({
   schema: "./src/lib/db/schema.ts",
   out: "./src/lib/db/migrations",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? "postgres://postgres:postgres@localhost:5432/finance",
+    url: process.env.SUPABASE_DB_DIRECT_URL ?? process.env.DATABASE_URL!,
   },
-  strict: true,
-  verbose: true,
-} satisfies Config;
+});
