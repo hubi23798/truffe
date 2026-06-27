@@ -78,6 +78,13 @@
       "when": 1782581225558,
       "tag": "0010_tenant_member_constraints",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1782581436720,
+      "tag": "0011_seed_primary_tenant",
+      "breakpoints": true
     }
   ]
 }
