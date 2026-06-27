@@ -64,6 +64,13 @@
       "when": 1779395884027,
       "tag": "0008_outgoing_amazoness",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1782580903450,
+      "tag": "0009_tenancy_primitives",
+      "breakpoints": true
     }
   ]
 }

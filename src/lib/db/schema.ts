@@ -112,6 +112,23 @@ export const goalKindEnum = pgEnum("goal_kind", [
   "portfolio_target",
 ]);
 
+export const tenantPlanEnum = pgEnum("tenant_plan", [
+  "trial",
+  "solo",
+  "family",
+  "family_office",
+]);
+
+export const tenantRegionEnum = pgEnum("tenant_region", ["us", "eu", "uk"]);
+
+export const memberRoleEnum = pgEnum("member_role", ["owner", "observer"]);
+
+export const memberScopeEnum = pgEnum("member_scope", [
+  "full_read",
+  "ledger_only",
+  "audit_only",
+]);
+
 // -- Tables -------------------------------------------------------------
 
 /**
@@ -130,6 +147,35 @@ export const user = pgTable("user", {
   }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const tenant = pgTable("tenant", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  plan: tenantPlanEnum("plan").notNull().default("trial"),
+  region: tenantRegionEnum("region").notNull().default("us"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const tenantMember = pgTable(
+  "tenant_member",
+  {
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    role: memberRoleEnum("role").notNull(),
+    scope: memberScopeEnum("scope").notNull().default("full_read"),
+    invitedBy: uuid("invited_by").references(() => user.id),
+    invitedAt: timestamp("invited_at", { withTimezone: true }).notNull().defaultNow(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.tenantId, t.userId] }),
+  }),
+);
 
 /**
  * Server-side sessions. The cookie carries only the session id; revocation
@@ -539,3 +585,7 @@ export type Goal = typeof goal.$inferSelect;
 export type NewGoal = typeof goal.$inferInsert;
 export type WeeklyDebrief = typeof weeklyDebrief.$inferSelect;
 export type NewWeeklyDebrief = typeof weeklyDebrief.$inferInsert;
+export type Tenant = typeof tenant.$inferSelect;
+export type NewTenant = typeof tenant.$inferInsert;
+export type TenantMember = typeof tenantMember.$inferSelect;
+export type NewTenantMember = typeof tenantMember.$inferInsert;
