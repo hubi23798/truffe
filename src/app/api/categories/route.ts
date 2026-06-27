@@ -4,7 +4,7 @@ import { asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
-import { PRIMARY_USER_ID, category } from "@/lib/db/schema";
+import { PRIMARY_TENANT_ID, PRIMARY_USER_ID, category } from "@/lib/db/schema";
 import { env } from "@/env";
 
 async function auth() {
@@ -41,6 +41,7 @@ export async function POST(req: Request) {
   const [row] = await db
     .insert(category)
     .values({
+      tenantId: PRIMARY_TENANT_ID,
       userId: PRIMARY_USER_ID,
       name: body.data.name,
       parentId: body.data.parentId ?? null,

@@ -4,6 +4,7 @@ import { count, desc, eq } from "drizzle-orm";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
 import {
+  PRIMARY_TENANT_ID,
   PRIMARY_USER_ID,
   advisorConversation,
   advisorMessage,
@@ -52,7 +53,7 @@ export async function POST() {
 
   const [conv] = await db
     .insert(advisorConversation)
-    .values({ userId: PRIMARY_USER_ID, title: "New conversation" })
+    .values({ tenantId: PRIMARY_TENANT_ID, userId: PRIMARY_USER_ID, title: "New conversation" })
     .returning({ id: advisorConversation.id });
 
   return NextResponse.json({ id: conv!.id }, { status: 201 });

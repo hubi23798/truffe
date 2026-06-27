@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
-import { PRIMARY_USER_ID, advisorConversation } from "@/lib/db/schema";
+import { PRIMARY_TENANT_ID, PRIMARY_USER_ID, advisorConversation } from "@/lib/db/schema";
 import { env } from "@/env";
 import Link from "next/link";
 
@@ -31,7 +31,7 @@ export default async function AdvisorPage() {
     if (!sess2) redirect("/login");
     const [conv] = await db2
       .insert(advisorConversation)
-      .values({ userId: PRIMARY_USER_ID, title: "New conversation" })
+      .values({ tenantId: PRIMARY_TENANT_ID, userId: PRIMARY_USER_ID, title: "New conversation" })
       .returning({ id: advisorConversation.id });
     redirect(`/advisor/c/${conv!.id}`);
   }

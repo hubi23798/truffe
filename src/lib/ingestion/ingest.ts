@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { Db } from "@/lib/db/client";
 import {
+  PRIMARY_TENANT_ID,
   PRIMARY_USER_ID,
   account,
   category,
@@ -47,6 +48,7 @@ async function resolveAccount(db: Db, hint: AccountHint): Promise<{ id: string; 
   const [created] = await db
     .insert(account)
     .values({
+      tenantId: PRIMARY_TENANT_ID,
       userId: PRIMARY_USER_ID,
       name: hint.suggestedName,
       kind: hint.suggestedKind,
@@ -76,6 +78,7 @@ export async function ingest(db: Db, file: Buffer): Promise<IngestResult> {
   const [batch] = await db
     .insert(importBatch)
     .values({
+      tenantId: PRIMARY_TENANT_ID,
       sourceKind: "revolut_csv",
       fileSha256,
       status: "parsing",
@@ -111,6 +114,7 @@ export async function ingest(db: Db, file: Buffer): Promise<IngestResult> {
         const inserted = await tx
           .insert(transaction)
           .values({
+            tenantId: PRIMARY_TENANT_ID,
             accountId,
             externalId: txn.externalId,
             startedAt: txn.startedAt,
@@ -194,6 +198,7 @@ export async function ingest(db: Db, file: Buffer): Promise<IngestResult> {
   if (allRejections.length > 0) {
     await db.insert(importBatchRejection).values(
       allRejections.map((r) => ({
+        tenantId: PRIMARY_TENANT_ID,
         importBatchId: batchId,
         rowIndex: r.rowIndex,
         rawRowJson: r.rawRow,

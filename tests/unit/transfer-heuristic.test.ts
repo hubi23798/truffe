@@ -7,6 +7,7 @@ const INTERNAL_TRANSFER_CAT = "00000000-0000-0000-0002-000000000021";
 function makeTxn(overrides: Partial<Transaction>): Transaction {
   return {
     id: "txn-1",
+    tenantId: "00000000-0000-0000-0000-0000000000aa",
     accountId: "acct-1",
     importBatchId: "00000000-0000-0000-0000-000000000001",
     externalId: "abc123",

@@ -5,6 +5,7 @@ import type { CategorizationRule, Transaction } from "@/lib/db/schema";
 function rule(overrides: Partial<CategorizationRule> = {}): CategorizationRule {
   return {
     id: "rule-1",
+    tenantId: "00000000-0000-0000-0000-0000000000aa",
     userId: "user-1",
     matchKind: "description_contains",
     matchValue: "",
@@ -21,6 +22,7 @@ function rule(overrides: Partial<CategorizationRule> = {}): CategorizationRule {
 function txn(overrides: Partial<Transaction> = {}): Transaction {
   return {
     id: "txn-1",
+    tenantId: "00000000-0000-0000-0000-0000000000aa",
     accountId: "acct-1",
     importBatchId: "00000000-0000-0000-0000-000000000001",
     externalId: "abc123",

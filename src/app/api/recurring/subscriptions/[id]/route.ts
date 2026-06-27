@@ -5,6 +5,7 @@ import { z } from "zod";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
 import {
+  PRIMARY_TENANT_ID,
   PRIMARY_USER_ID,
   budgetTarget,
   category,
@@ -103,6 +104,7 @@ export async function PATCH(
 
   if (proposal.action === "create") {
     await db.insert(budgetTarget).values({
+      tenantId: PRIMARY_TENANT_ID,
       userId: PRIMARY_USER_ID,
       categoryId: newCategoryId,
       amountMonthly: proposal.amount,

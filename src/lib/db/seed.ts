@@ -10,6 +10,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { getDb } from "./client";
 import {
+  PRIMARY_TENANT_ID,
   PRIMARY_USER_ID,
   account,
   importBatch,
@@ -62,6 +63,7 @@ function fmtDate(d: Date): string {
 }
 
 type TxnRow = {
+  tenantId: string;
   accountId: string;
   startedAt: Date;
   completedAt: Date;
@@ -91,6 +93,7 @@ function txn(
 ): TxnRow {
   const ts = utc(year, month, day, hour, minute);
   return {
+    tenantId: PRIMARY_TENANT_ID,
     accountId,
     startedAt: ts,
     completedAt: ts,
@@ -281,7 +284,7 @@ function buildSnapshots(
   txns: TxnRow[],
   startDate: Date,
   endDate: Date,
-): { accountId: string; asOfDate: string; balanceNative: number; balanceBaseCcy: number }[] {
+): { tenantId: string; accountId: string; asOfDate: string; balanceNative: number; balanceBaseCcy: number }[] {
   const txnsByDate = new Map<string, number>();
   for (const t of txns.filter((r) => r.accountId === accountId)) {
     const d = fmtDate(t.startedAt);
@@ -295,6 +298,7 @@ function buildSnapshots(
     const key = fmtDate(cursor);
     running += txnsByDate.get(key) ?? 0;
     snapshots.push({
+      tenantId: PRIMARY_TENANT_ID,
       accountId,
       asOfDate: key,
       balanceNative: running,
@@ -331,6 +335,7 @@ async function main() {
   await db.insert(account).values([
     {
       id: ACCT_CURRENT,
+      tenantId: PRIMARY_TENANT_ID,
       userId: PRIMARY_USER_ID,
       name: "Revolut EUR",
       kind: "cash",
@@ -342,6 +347,7 @@ async function main() {
     },
     {
       id: ACCT_SAVINGS,
+      tenantId: PRIMARY_TENANT_ID,
       userId: PRIMARY_USER_ID,
       name: "Savings EUR",
       kind: "cash",
@@ -356,6 +362,7 @@ async function main() {
   await db.insert(importBatch).values([
     {
       id: BATCH_CURRENT,
+      tenantId: PRIMARY_TENANT_ID,
       accountId: ACCT_CURRENT,
       sourceKind: "revolut_csv",
       fileSha256: "seed-demo-current-00000000000000000000000000000000",
@@ -365,6 +372,7 @@ async function main() {
     },
     {
       id: BATCH_SAVINGS,
+      tenantId: PRIMARY_TENANT_ID,
       accountId: ACCT_SAVINGS,
       sourceKind: "revolut_csv",
       fileSha256: "seed-demo-savings-00000000000000000000000000000000",
@@ -430,7 +438,7 @@ async function main() {
     // Tax
     { userId: PRIMARY_USER_ID, priority: 120, matchKind: "description_contains", matchValue: "Revenue", categoryId: CAT.tax },
   ];
-  await db.insert(categorizationRule).values(rules);
+  await db.insert(categorizationRule).values(rules.map((r) => ({ ...r, tenantId: PRIMARY_TENANT_ID })));
 
   // ── Transactions ─────────────────────────────────────────────────────────
   const currentTxns = buildCurrentTransactions();
