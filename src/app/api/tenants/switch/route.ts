@@ -7,6 +7,7 @@ import { eq, and, isNull } from "drizzle-orm";
 export async function POST(req: Request) {
   const form = await req.formData();
   const tenantId = String(form.get("tenantId") ?? "");
+  if (!tenantId) return NextResponse.json({ error: "tenantId required" }, { status: 400 });
   const supabase = await createServerClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return NextResponse.json({ error: "unauth" }, { status: 401 });
