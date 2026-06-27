@@ -15,6 +15,7 @@ bootstrap.token
 
 # Future build / runtime artifacts
 node_modules/
+.pnpm-store/
 .next/
 dist/
 build/
