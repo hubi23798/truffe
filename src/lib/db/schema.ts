@@ -1,8 +1,10 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  bigserial,
   boolean,
   check,
+  customType,
   date,
   index,
   integer,
@@ -17,6 +19,10 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
+
+const bytea = customType<{ data: Buffer }>({
+  dataType() { return "bytea"; },
+});
 
 // -- Constants ----------------------------------------------------------
 
@@ -651,6 +657,31 @@ export const weeklyDebrief = pgTable(
     index("weekly_debrief_tenant_id_idx").on(t.tenantId),
   ],
 );
+
+// -- Audit Log V2 ------------------------------------------------------
+
+export const auditLogV2 = pgTable(
+  "audit_log_v2",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    tenantId: uuid("tenant_id").notNull().references(() => tenant.id),
+    actorUserId: uuid("actor_user_id").references(() => user.id),
+    action: text("action").notNull(),
+    targetType: text("target_type"),
+    targetId: text("target_id"),
+    before: jsonb("before"),
+    after: jsonb("after"),
+    context: jsonb("context"),
+    prevHash: bytea("prev_hash").notNull(),
+    thisHash: bytea("this_hash").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    tenantCreatedIdx: index("audit_log_v2_tenant_created_idx").on(t.tenantId, t.createdAt),
+  }),
+);
+
+export type AuditLogV2 = typeof auditLogV2.$inferSelect;
 
 // -- Inferred types -----------------------------------------------------
 
