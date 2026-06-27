@@ -4,12 +4,11 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
-import { PRIMARY_USER_ID, account, goal } from "@/lib/db/schema";
+import { PRIMARY_TENANT_ID, PRIMARY_USER_ID, account, goal } from "@/lib/db/schema";
 import { env } from "@/env";
 import { getLatestBalances } from "@/lib/goals/balance";
 import { calculateGoalProgress } from "@/lib/goals/progress";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { UUID_RE } from "@/lib/validation/uuid";
 
 const createSchema = z.object({
   name: z.string().min(1).max(100),
@@ -99,6 +98,7 @@ export async function POST(req: Request) {
   const [inserted] = await db
     .insert(goal)
     .values({
+      tenantId: PRIMARY_TENANT_ID,
       userId: PRIMARY_USER_ID,
       name,
       kind,

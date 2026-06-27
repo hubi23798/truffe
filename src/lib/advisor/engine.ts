@@ -3,6 +3,7 @@ import { eq, gte, sql } from "drizzle-orm";
 import { env } from "@/env";
 import type { Db } from "@/lib/db/client";
 import {
+  PRIMARY_TENANT_ID,
   advisorMessage,
   pendingProposal,
 } from "@/lib/db/schema";
@@ -111,6 +112,7 @@ export async function runAdvisorTurn(
 
   // Persist user message
   await db.insert(advisorMessage).values({
+    tenantId: PRIMARY_TENANT_ID,
     conversationId,
     role: "user",
     contentText: userMessageText,
@@ -150,6 +152,7 @@ export async function runAdvisorTurn(
 
     // Persist intermediate assistant message (tool calls)
     await db.insert(advisorMessage).values({
+      tenantId: PRIMARY_TENANT_ID,
       conversationId,
       role: "assistant",
       contentText: null,
@@ -175,6 +178,7 @@ export async function runAdvisorTurn(
 
     // Persist tool results message
     await db.insert(advisorMessage).values({
+      tenantId: PRIMARY_TENANT_ID,
       conversationId,
       role: "tool",
       contentText: null,
@@ -231,6 +235,7 @@ export async function runAdvisorTurn(
   const [finalMsg] = await db
     .insert(advisorMessage)
     .values({
+      tenantId: PRIMARY_TENANT_ID,
       conversationId,
       role: "assistant",
       contentText: outputText,
@@ -244,6 +249,7 @@ export async function runAdvisorTurn(
   if (ctx.proposals.length > 0 && finalMsg?.id) {
     await db.insert(pendingProposal).values(
       ctx.proposals.map((draft) => ({
+        tenantId: PRIMARY_TENANT_ID,
         id: draft.id,
         advisorMessageId: finalMsg.id,
         kind: draft.kind,

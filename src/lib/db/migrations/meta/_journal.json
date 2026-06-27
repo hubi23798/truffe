@@ -64,6 +64,69 @@
       "when": 1779395884027,
       "tag": "0008_outgoing_amazoness",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1782580903450,
+      "tag": "0009_tenancy_primitives",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1782581225558,
+      "tag": "0010_tenant_member_constraints",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1782581436720,
+      "tag": "0011_seed_primary_tenant",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1782581624183,
+      "tag": "0012_tenant_id_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1782582000000,
+      "tag": "0013_rls_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1782582100000,
+      "tag": "0014_default_tenant_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1782582200000,
+      "tag": "0015_audit_log_v2",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1782582300000,
+      "tag": "0016_audit_log_v2_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1782582400000,
+      "tag": "0017_drop_old_audit_log",
+      "breakpoints": true
     }
   ]
 }

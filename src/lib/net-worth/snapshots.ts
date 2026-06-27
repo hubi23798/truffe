@@ -1,6 +1,6 @@
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 import type { Db } from "@/lib/db/client";
-import { PRIMARY_USER_ID, account, balanceSnapshot, transaction } from "@/lib/db/schema";
+import { PRIMARY_TENANT_ID, PRIMARY_USER_ID, account, balanceSnapshot, transaction } from "@/lib/db/schema";
 import { getFxRate } from "@/lib/fx/rates";
 
 interface AccountRow {
@@ -35,7 +35,7 @@ async function upsertSnapshot(
 ) {
   await db
     .insert(balanceSnapshot)
-    .values({ accountId, asOfDate, balanceNative, balanceBaseCcy })
+    .values({ tenantId: PRIMARY_TENANT_ID, accountId, asOfDate, balanceNative, balanceBaseCcy })
     .onConflictDoUpdate({
       target: [balanceSnapshot.accountId, balanceSnapshot.asOfDate],
       set: { balanceNative, balanceBaseCcy },

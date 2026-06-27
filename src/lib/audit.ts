@@ -1,5 +1,8 @@
 import type { Db } from "@/lib/db/client";
-import { auditLog } from "@/lib/db/schema";
+import { PRIMARY_TENANT_ID } from "@/lib/db/schema";
+import { appendAudit } from "@/lib/audit/append";
+
+export { appendAudit } from "@/lib/audit/append";
 
 type Actor = "user" | "advisor" | "system" | "cron";
 
@@ -13,17 +16,16 @@ export interface AuditEntry {
   after?: unknown;
 }
 
-/**
- * Append-only mutation log. One row per call; no batching, no querying.
- */
+/** @deprecated Use appendAudit directly. tenantId hardcoded to PRIMARY_TENANT_ID — safe during migration window (single tenant). */
 export async function recordAudit(db: Db, entry: AuditEntry): Promise<void> {
-  await db.insert(auditLog).values({
-    actor: entry.actor,
+  await appendAudit(db, {
+    tenantId: PRIMARY_TENANT_ID,
+    actorUserId: entry.userId ?? null,
     action: entry.action,
-    userId: entry.userId,
-    targetTable: entry.targetTable,
+    targetType: entry.targetTable,
     targetId: entry.targetId,
-    before: entry.before as never,
-    after: entry.after as never,
+    before: entry.before,
+    after: entry.after,
+    context: { actor: entry.actor },
   });
 }

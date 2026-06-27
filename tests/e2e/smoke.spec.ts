@@ -13,3 +13,12 @@ test("login page renders email + password form", async ({ page }) => {
   await expect(page.getByLabel(/password/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
 });
+
+// NOTE: this test requires a logged-in session. Without auth fixtures it will land on /login.
+// Run as part of the full e2e suite with auth storageState configured.
+test("primary tenant data renders on /", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByTestId("net-worth-hero")).toBeVisible();
+  // Tenant picker should NOT appear for single-membership user.
+  await expect(page).not.toHaveURL(/\/tenants/);
+});

@@ -33,6 +33,15 @@ const schema = z.object({
   // Shared secret for cron endpoints. If set, callers must pass it as
   // x-cron-secret header. Leave unset in local dev to skip the check.
   CRON_SECRET: z.string().min(16).optional(),
+  // Supabase (required once Supabase is provisioned; optional during migration window)
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_ANON_KEY: z.string().min(1).optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  SUPABASE_DB_URL: z.string().min(1).optional(),
+  SUPABASE_DB_DIRECT_URL: z.string().min(1).optional(),
+  // Axiom structured logging (optional; logs silently dropped when unset)
+  AXIOM_DATASET: z.string().optional(),
+  AXIOM_TOKEN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof schema>;

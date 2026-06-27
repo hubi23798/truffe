@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
-import { PRIMARY_USER_ID, recurringDismissal } from "@/lib/db/schema";
+import { PRIMARY_TENANT_ID, PRIMARY_USER_ID, recurringDismissal } from "@/lib/db/schema";
 import { env } from "@/env";
 
 const bodySchema = z.object({ key: z.string().min(1).max(512) });
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
 
   await db
     .insert(recurringDismissal)
-    .values({ userId: PRIMARY_USER_ID, key: parsed.data.key })
+    .values({ tenantId: PRIMARY_TENANT_ID, userId: PRIMARY_USER_ID, key: parsed.data.key })
     .onConflictDoNothing();
 
   return NextResponse.json({ ok: true }, { status: 201 });

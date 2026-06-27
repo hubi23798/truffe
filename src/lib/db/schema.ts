@@ -1,7 +1,10 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  bigserial,
   boolean,
+  check,
+  customType,
   date,
   index,
   integer,
@@ -17,6 +20,10 @@ import {
 } from "drizzle-orm/pg-core";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
+const bytea = customType<{ data: Buffer }>({
+  dataType() { return "bytea"; },
+});
+
 // -- Constants ----------------------------------------------------------
 
 /**
@@ -26,6 +33,7 @@ import type { AnyPgColumn } from "drizzle-orm/pg-core";
  * ADMIN_PASSWORD), never in this row.
  */
 export const PRIMARY_USER_ID = "00000000-0000-0000-0000-000000000001";
+export const PRIMARY_TENANT_ID = "00000000-0000-0000-0000-0000000000aa";
 
 // -- Enums --------------------------------------------------------------
 
@@ -112,6 +120,23 @@ export const goalKindEnum = pgEnum("goal_kind", [
   "portfolio_target",
 ]);
 
+export const tenantPlanEnum = pgEnum("tenant_plan", [
+  "trial",
+  "solo",
+  "family",
+  "family_office",
+]);
+
+export const tenantRegionEnum = pgEnum("tenant_region", ["us", "eu", "uk"]);
+
+export const memberRoleEnum = pgEnum("member_role", ["owner", "observer"]);
+
+export const memberScopeEnum = pgEnum("member_scope", [
+  "full_read",
+  "ledger_only",
+  "audit_only",
+]);
+
 // -- Tables -------------------------------------------------------------
 
 /**
@@ -129,7 +154,44 @@ export const user = pgTable("user", {
     mode: "number",
   }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  defaultTenantId: uuid("default_tenant_id").references((): AnyPgColumn => tenant.id, { onDelete: "set null" }),
 });
+
+export const tenant = pgTable("tenant", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  plan: tenantPlanEnum("plan").notNull().default("trial"),
+  region: tenantRegionEnum("region").notNull().default("us"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const tenantMember = pgTable(
+  "tenant_member",
+  {
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    role: memberRoleEnum("role").notNull(),
+    scope: memberScopeEnum("scope").notNull().default("full_read"),
+    invitedBy: uuid("invited_by").references(() => user.id, { onDelete: "set null" }),
+    invitedAt: timestamp("invited_at", { withTimezone: true }).notNull().defaultNow(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.tenantId, t.userId] }),
+    userIdActiveIdx: index("tenant_member_user_id_idx")
+      .on(t.userId)
+      .where(sql`revoked_at IS NULL`),
+    revokedAfterAcceptedChk: check(
+      "tenant_member_revoked_after_accepted_chk",
+      sql`revoked_at IS NULL OR accepted_at IS NULL OR revoked_at >= accepted_at`,
+    ),
+  }),
+);
 
 /**
  * Server-side sessions. The cookie carries only the session id; revocation
@@ -185,81 +247,109 @@ export const auditLog = pgTable("audit_log", {
  * `is_liquid` governs whether the account is included in liquid-asset totals.
  * Liabilities (kind='liability') are stored positive; net worth engine flips sign.
  */
-export const account = pgTable("account", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  kind: accountKindEnum("kind").notNull(),
-  currency: text("currency").notNull(),
-  isActive: boolean("is_active").notNull().default(true),
-  isLiquid: boolean("is_liquid").notNull().default(false),
-  externalProvider: text("external_provider"),
-  externalAccountId: text("external_account_id"),
-  liabilityTerms: jsonb("liability_terms"),
-  notes: text("notes"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const account = pgTable(
+  "account",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    kind: accountKindEnum("kind").notNull(),
+    currency: text("currency").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    isLiquid: boolean("is_liquid").notNull().default(false),
+    externalProvider: text("external_provider"),
+    externalAccountId: text("external_account_id"),
+    liabilityTerms: jsonb("liability_terms"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("account_tenant_id_idx").on(t.tenantId)],
+);
 
 /**
  * Tracks each CSV (or future source) file upload. `file_sha256` uniqueness
  * makes re-uploading the same file a fast no-op at the boundary.
  */
-export const importBatch = pgTable("import_batch", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  accountId: uuid("account_id").references(() => account.id, { onDelete: "set null" }),
-  sourceKind: importBatchSourceKindEnum("source_kind").notNull(),
-  fileSha256: text("file_sha256").notNull().unique(),
-  status: importBatchStatusEnum("status").notNull().default("pending"),
-  rowCount: integer("row_count"),
-  acceptedCount: integer("accepted_count"),
-  rejectedCount: integer("rejected_count"),
-  importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),
-  importedByUserId: uuid("imported_by_user_id")
-    .notNull()
-    .references(() => user.id),
-  notes: text("notes"),
-});
+export const importBatch = pgTable(
+  "import_batch",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
+    accountId: uuid("account_id").references(() => account.id, { onDelete: "set null" }),
+    sourceKind: importBatchSourceKindEnum("source_kind").notNull(),
+    fileSha256: text("file_sha256").notNull().unique(),
+    status: importBatchStatusEnum("status").notNull().default("pending"),
+    rowCount: integer("row_count"),
+    acceptedCount: integer("accepted_count"),
+    rejectedCount: integer("rejected_count"),
+    importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),
+    importedByUserId: uuid("imported_by_user_id")
+      .notNull()
+      .references(() => user.id),
+    notes: text("notes"),
+  },
+  (t) => [index("import_batch_tenant_id_idx").on(t.tenantId)],
+);
 
 /**
  * Two-level category tree (parent groups + leaf categories).
  * Seed taxonomy ships with ~20 leaves across 7 parent groups.
  */
-export const category = pgTable("category", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  parentId: uuid("parent_id").references((): AnyPgColumn => category.id, {
-    onDelete: "set null",
-  }),
-  kind: categoryKindEnum("kind").notNull(),
-  isArchived: boolean("is_archived").notNull().default(false),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const category = pgTable(
+  "category",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    parentId: uuid("parent_id").references((): AnyPgColumn => category.id, {
+      onDelete: "set null",
+    }),
+    kind: categoryKindEnum("kind").notNull(),
+    isArchived: boolean("is_archived").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("category_tenant_id_idx").on(t.tenantId)],
+);
 
 /**
  * Pattern-matching rules applied in priority order during categorization.
  * First match wins. LLM-accepted suggestions are stored here once promoted.
  */
-export const categorizationRule = pgTable("categorization_rule", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  priority: integer("priority").notNull(),
-  matchKind: ruleMatchKindEnum("match_kind").notNull(),
-  matchValue: text("match_value").notNull(),
-  categoryId: uuid("category_id")
-    .notNull()
-    .references(() => category.id),
-  source: ruleSourceEnum("source").notNull().default("user"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  lastMatchedAt: timestamp("last_matched_at", { withTimezone: true }),
-  matchCount: integer("match_count").notNull().default(0),
-});
+export const categorizationRule = pgTable(
+  "categorization_rule",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    priority: integer("priority").notNull(),
+    matchKind: ruleMatchKindEnum("match_kind").notNull(),
+    matchValue: text("match_value").notNull(),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => category.id),
+    source: ruleSourceEnum("source").notNull().default("user"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastMatchedAt: timestamp("last_matched_at", { withTimezone: true }),
+    matchCount: integer("match_count").notNull().default(0),
+  },
+  (t) => [index("categorization_rule_tenant_id_idx").on(t.tenantId)],
+);
 
 /**
  * Ledger of all financial movements. Amounts stored in native currency
@@ -270,6 +360,9 @@ export const transaction = pgTable(
   "transaction",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
     accountId: uuid("account_id")
       .notNull()
       .references(() => account.id, { onDelete: "cascade" }),
@@ -302,6 +395,8 @@ export const transaction = pgTable(
     uniqueIndex("transaction_account_external_id_udx")
       .on(t.accountId, t.externalId)
       .where(sql`"external_id" IS NOT NULL`),
+    index("transaction_tenant_id_idx").on(t.tenantId),
+    index("transaction_tenant_started_at_idx").on(t.tenantId, t.startedAt),
   ],
 );
 
@@ -309,15 +404,22 @@ export const transaction = pgTable(
  * Sidecar table for the never-silent-drop guarantee. Every row that fails
  * ingestion validation is recorded here with its raw content and reason.
  */
-export const importBatchRejection = pgTable("import_batch_rejection", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  importBatchId: uuid("import_batch_id")
-    .notNull()
-    .references(() => importBatch.id, { onDelete: "cascade" }),
-  rowIndex: integer("row_index").notNull(),
-  rawRowJson: jsonb("raw_row_json").notNull(),
-  reason: text("reason").notNull(),
-});
+export const importBatchRejection = pgTable(
+  "import_batch_rejection",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
+    importBatchId: uuid("import_batch_id")
+      .notNull()
+      .references(() => importBatch.id, { onDelete: "cascade" }),
+    rowIndex: integer("row_index").notNull(),
+    rawRowJson: jsonb("raw_row_json").notNull(),
+    reason: text("reason").notNull(),
+  },
+  (t) => [index("import_batch_rejection_tenant_id_idx").on(t.tenantId)],
+);
 
 /**
  * Daily per-account balance close, written by cron and first-ingest backfill.
@@ -326,6 +428,9 @@ export const importBatchRejection = pgTable("import_batch_rejection", {
 export const balanceSnapshot = pgTable(
   "balance_snapshot",
   {
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
     accountId: uuid("account_id")
       .notNull()
       .references(() => account.id, { onDelete: "cascade" }),
@@ -333,7 +438,11 @@ export const balanceSnapshot = pgTable(
     balanceNative: bigint("balance_native", { mode: "number" }).notNull(),
     balanceBaseCcy: bigint("balance_base_ccy", { mode: "number" }).notNull(),
   },
-  (t) => [primaryKey({ columns: [t.accountId, t.asOfDate] })],
+  (t) => [
+    primaryKey({ columns: [t.accountId, t.asOfDate] }),
+    index("balance_snapshot_tenant_id_idx").on(t.tenantId),
+    index("balance_snapshot_tenant_as_of_date_idx").on(t.tenantId, t.asOfDate),
+  ],
 );
 
 /**
@@ -358,6 +467,9 @@ export const budgetTarget = pgTable(
   "budget_target",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
     userId: uuid("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -368,23 +480,36 @@ export const budgetTarget = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("budget_target_user_category_udx").on(t.userId, t.categoryId)],
+  (t) => [
+    uniqueIndex("budget_target_user_category_udx").on(t.userId, t.categoryId),
+    index("budget_target_tenant_id_idx").on(t.tenantId),
+  ],
 );
 
-export const advisorConversation = pgTable("advisor_conversation", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  isArchived: boolean("is_archived").notNull().default(false),
-  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const advisorConversation = pgTable(
+  "advisor_conversation",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    isArchived: boolean("is_archived").notNull().default(false),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("advisor_conversation_tenant_id_idx").on(t.tenantId)],
+);
 
 export const advisorMessage = pgTable(
   "advisor_message",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
     conversationId: uuid("conversation_id")
       .notNull()
       .references(() => advisorConversation.id, { onDelete: "cascade" }),
@@ -402,6 +527,7 @@ export const advisorMessage = pgTable(
       t.conversationId,
       t.createdAt,
     ),
+    index("advisor_message_tenant_id_idx").on(t.tenantId),
   ],
 );
 
@@ -409,6 +535,9 @@ export const pendingProposal = pgTable(
   "pending_proposal",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
     advisorMessageId: uuid("advisor_message_id")
       .notNull()
       .references(() => advisorMessage.id, { onDelete: "cascade" }),
@@ -420,6 +549,7 @@ export const pendingProposal = pgTable(
   },
   (t) => [
     index("pending_proposal_status_created_at_idx").on(t.status, t.createdAt),
+    index("pending_proposal_tenant_id_idx").on(t.tenantId),
   ],
 );
 
@@ -427,6 +557,9 @@ export const recurringSubscription = pgTable(
   "recurring_subscription",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
     userId: uuid("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -440,20 +573,29 @@ export const recurringSubscription = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("recurring_subscription_user_id_idx").on(t.userId)],
+  (t) => [
+    index("recurring_subscription_user_id_idx").on(t.userId),
+    index("recurring_subscription_tenant_id_idx").on(t.tenantId),
+  ],
 );
 
 export const recurringDismissal = pgTable(
   "recurring_dismissal",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
     userId: uuid("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     key: text("key").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex("recurring_dismissal_user_id_key_idx").on(t.userId, t.key)],
+  (t) => [
+    uniqueIndex("recurring_dismissal_user_id_key_idx").on(t.userId, t.key),
+    index("recurring_dismissal_tenant_id_idx").on(t.tenantId),
+  ],
 );
 
 // -- Goals -------------------------------------------------------------
@@ -462,6 +604,9 @@ export const goal = pgTable(
   "goal",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
     userId: uuid("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -475,7 +620,10 @@ export const goal = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [index("goal_user_id_idx").on(t.userId)],
+  (t) => [
+    index("goal_user_id_idx").on(t.userId),
+    index("goal_tenant_id_idx").on(t.tenantId),
+  ],
 );
 
 // -- Weekly Debrief -----------------------------------------------------
@@ -492,6 +640,9 @@ export const weeklyDebrief = pgTable(
   "weekly_debrief",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenant.id, { onDelete: "restrict" }),
     userId: uuid("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -501,8 +652,36 @@ export const weeklyDebrief = pgTable(
     narrativeText: text("narrative_text").notNull(),
     flags: jsonb("flags").$type<DebriefFlag[]>().notNull().default([]),
   },
-  (t) => [uniqueIndex("weekly_debrief_user_week_udx").on(t.userId, t.weekStart)],
+  (t) => [
+    uniqueIndex("weekly_debrief_user_week_udx").on(t.userId, t.weekStart),
+    index("weekly_debrief_tenant_id_idx").on(t.tenantId),
+  ],
 );
+
+// -- Audit Log V2 ------------------------------------------------------
+
+export const auditLogV2 = pgTable(
+  "audit_log_v2",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    tenantId: uuid("tenant_id").notNull().references(() => tenant.id, { onDelete: "restrict" }),
+    actorUserId: uuid("actor_user_id").references(() => user.id, { onDelete: "set null" }),
+    action: text("action").notNull(),
+    targetType: text("target_type"),
+    targetId: text("target_id"),
+    before: jsonb("before"),
+    after: jsonb("after"),
+    context: jsonb("context"),
+    prevHash: bytea("prev_hash").notNull(),
+    thisHash: bytea("this_hash").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    tenantCreatedIdx: index("audit_log_v2_tenant_created_idx").on(t.tenantId, t.createdAt),
+  }),
+);
+
+export type AuditLogV2 = typeof auditLogV2.$inferSelect;
 
 // -- Inferred types -----------------------------------------------------
 
@@ -539,3 +718,7 @@ export type Goal = typeof goal.$inferSelect;
 export type NewGoal = typeof goal.$inferInsert;
 export type WeeklyDebrief = typeof weeklyDebrief.$inferSelect;
 export type NewWeeklyDebrief = typeof weeklyDebrief.$inferInsert;
+export type Tenant = typeof tenant.$inferSelect;
+export type NewTenant = typeof tenant.$inferInsert;
+export type TenantMember = typeof tenantMember.$inferSelect;
+export type NewTenantMember = typeof tenantMember.$inferInsert;

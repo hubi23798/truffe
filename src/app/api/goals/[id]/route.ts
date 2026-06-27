@@ -7,8 +7,7 @@ import { getDb } from "@/lib/db/client";
 import { PRIMARY_USER_ID, account, goal } from "@/lib/db/schema";
 import { env } from "@/env";
 import { getLatestBalances } from "@/lib/goals/balance";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { UUID_RE } from "@/lib/validation/uuid";
 
 const patchSchema = z.object({
   name: z.string().min(1).max(100).optional(),

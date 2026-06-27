@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
-import { PRIMARY_USER_ID, budgetTarget, category } from "@/lib/db/schema";
+import { PRIMARY_TENANT_ID, PRIMARY_USER_ID, budgetTarget, category } from "@/lib/db/schema";
 import { env } from "@/env";
 
 const putBody = z.object({
@@ -44,6 +44,7 @@ export async function PUT(
   const [row] = await db
     .insert(budgetTarget)
     .values({
+      tenantId: PRIMARY_TENANT_ID,
       userId: PRIMARY_USER_ID,
       categoryId,
       amountMonthly: parsed.data.amountMonthly,

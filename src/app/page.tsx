@@ -5,7 +5,7 @@ import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
 import { getNetWorthNow } from "@/lib/net-worth/engine";
 import { getMonthlySummary, monthLabel, prevMonth } from "@/lib/summary";
-import { advisorConversation, PRIMARY_USER_ID, transaction } from "@/lib/db/schema";
+import { advisorConversation, PRIMARY_TENANT_ID, PRIMARY_USER_ID, transaction } from "@/lib/db/schema";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
 import { KpiCard, KpiGrid } from "@/components/kpi-card";
@@ -111,7 +111,7 @@ export default async function HomePage() {
     if (!sess2) redirect("/login");
     const [conv] = await db2
       .insert(advisorConversation)
-      .values({ userId: PRIMARY_USER_ID, title: q.slice(0, 60) })
+      .values({ tenantId: PRIMARY_TENANT_ID, userId: PRIMARY_USER_ID, title: q.slice(0, 60) })
       .returning({ id: advisorConversation.id });
     redirect(`/advisor/c/${conv!.id}?q=${encodeURIComponent(q)}`);
   }

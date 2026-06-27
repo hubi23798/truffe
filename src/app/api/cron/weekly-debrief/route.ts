@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getDb } from "@/lib/db/client";
-import { weeklyDebrief, PRIMARY_USER_ID } from "@/lib/db/schema";
+import { weeklyDebrief, PRIMARY_TENANT_ID, PRIMARY_USER_ID } from "@/lib/db/schema";
 import { generateDebrief } from "@/lib/debrief/generate";
 import { env } from "@/env";
 
@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
   await db
     .insert(weeklyDebrief)
     .values({
+      tenantId: PRIMARY_TENANT_ID,
       userId: PRIMARY_USER_ID,
       weekStart: weekStartStr,
       weekEnd: weekEndStr,

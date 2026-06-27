@@ -4,7 +4,7 @@ import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
-import { PRIMARY_USER_ID, categorizationRule } from "@/lib/db/schema";
+import { PRIMARY_TENANT_ID, PRIMARY_USER_ID, categorizationRule } from "@/lib/db/schema";
 import { env } from "@/env";
 
 async function auth() {
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
   const db = getDb();
   const [row] = await db
     .insert(categorizationRule)
-    .values({ userId: PRIMARY_USER_ID, source: "user", ...body.data })
+    .values({ tenantId: PRIMARY_TENANT_ID, userId: PRIMARY_USER_ID, source: "user", ...body.data })
     .returning();
 
   return NextResponse.json(row, { status: 201 });

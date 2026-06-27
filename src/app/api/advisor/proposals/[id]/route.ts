@@ -5,6 +5,7 @@ import { z } from "zod";
 import { readSession } from "@/lib/auth/session";
 import { getDb } from "@/lib/db/client";
 import {
+  PRIMARY_TENANT_ID,
   PRIMARY_USER_ID,
   advisorConversation,
   advisorMessage,
@@ -79,6 +80,7 @@ export async function PATCH(
     const nextPriority = (existing[0]?.priority ?? 0) + 1;
 
     await db.insert(categorizationRule).values({
+      tenantId: PRIMARY_TENANT_ID,
       userId: PRIMARY_USER_ID,
       priority: nextPriority,
       matchKind: p.matchKind,

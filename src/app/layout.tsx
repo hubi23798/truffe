@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppShell } from "@/components/nav";
+import { LenisProvider } from "@/components/lenis-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${inter.variable} ${jetbrainsMono.variable}`}
     >
       <body>
+        <LenisProvider />
         <ThemeProvider>
           <AppShell>{children}</AppShell>
         </ThemeProvider>
