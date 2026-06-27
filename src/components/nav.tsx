@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { TruffleMark } from "@/components/truffle-mark";
 import {
   Home, TrendingUp, ArrowLeftRight, Target, BarChart2,
-  MessageCircle, Settings, HelpCircle, Mail, RefreshCw, Tag, Lightbulb, LogOut,
+  MessageCircle, Settings, Mail, RefreshCw, Tag, Lightbulb, LogOut,
 } from "lucide-react";
 
 interface NavItem {
@@ -32,7 +32,6 @@ const PRIMARY_LINKS: NavItem[] = [
 
 const UTILITY_LINKS: NavItem[] = [
   { href: "/settings", label: "Settings", icon: Settings },
-  { href: "/help",     label: "Help",     icon: HelpCircle },
 ];
 
 function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
@@ -70,8 +69,12 @@ function SignOutItem() {
       disabled={busy}
       onClick={async () => {
         setBusy(true);
-        await fetch("/api/auth/logout", { method: "POST" });
-        window.location.href = "/login";
+        try {
+          await fetch("/api/auth/logout", { method: "POST" });
+          window.location.href = "/login";
+        } catch {
+          setBusy(false);
+        }
       }}
       className={cn(
         "group flex w-full items-center gap-3 rounded-md px-3 py-2 text-body-strong",
@@ -93,7 +96,9 @@ function SignOutItem() {
 export function SidebarNav({ className }: { className?: string }) {
   const pathname = usePathname();
 
-  if (pathname === "/login") return null;
+  if (pathname === "/login" || pathname === "/landing" || pathname.startsWith("/landing/")) {
+    return null;
+  }
 
   function isActive(href: string): boolean {
     if (href === "/") return pathname === "/";
@@ -150,6 +155,11 @@ export function SidebarNav({ className }: { className?: string }) {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isMarketing = pathname === "/landing" || pathname.startsWith("/landing/");
+
+  if (isMarketing) return <>{children}</>;
+
   return (
     <div className="flex h-screen overflow-hidden bg-page">
       <SidebarNav />
