@@ -13,6 +13,17 @@ function client(): Axiom | null {
   return axiom;
 }
 
+function safeStringify(value: unknown): string {
+  const seen = new WeakSet<object>();
+  return JSON.stringify(value, (_k, v) => {
+    if (v && typeof v === "object") {
+      if (seen.has(v as object)) return "[circular]";
+      seen.add(v as object);
+    }
+    return v;
+  });
+}
+
 export function log(event: string, data: Record<string, unknown>): void {
   const payload = redact(data, { amountThresholdCents: AMOUNT_THRESHOLD_CENTS }) as Record<
     string,
@@ -22,9 +33,13 @@ export function log(event: string, data: Record<string, unknown>): void {
   const c = client();
   if (!c || !dataset) {
     if (process.env.NODE_ENV !== "test") {
-      console.log(event, JSON.stringify(payload));
+      console.log(event, safeStringify(payload));
     }
     return;
   }
-  c.ingest(dataset, [{ event, ...payload }]);
+  try {
+    void Promise.resolve(c.ingest(dataset, [{ event, ...payload }])).catch(() => {});
+  } catch {
+    /* swallow — logging must never crash the request */
+  }
 }

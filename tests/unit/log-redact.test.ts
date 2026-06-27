@@ -77,4 +77,40 @@ describe("redact", () => {
     redact(input);
     expect(input).toEqual(copy);
   });
+
+  it("masks camelCase, PascalCase, SCREAMING_SNAKE_CASE, and kebab-case secret keys", () => {
+    expect(redact({ accessToken: "x" })).toEqual({ accessToken: "[redacted]" });
+    expect(redact({ AccessToken: "x" })).toEqual({ AccessToken: "[redacted]" });
+    expect(redact({ ACCESS_TOKEN: "x" })).toEqual({ ACCESS_TOKEN: "[redacted]" });
+    expect(redact({ "access-token": "x" })).toEqual({ "access-token": "[redacted]" });
+    expect(redact({ apiKey: "x", API_KEY: "y" })).toEqual({
+      apiKey: "[redacted]",
+      API_KEY: "[redacted]",
+    });
+  });
+
+  it("returns '[circular]' for circular object references instead of overflowing", () => {
+    type Cyclic = { self?: Cyclic; ok: string };
+    const a: Cyclic = { ok: "v" };
+    a.self = a;
+    expect(redact(a)).toEqual({ ok: "v", self: "[circular]" });
+  });
+
+  it("returns '[circular]' for circular array references", () => {
+    const a: unknown[] = [1];
+    a.push(a);
+    expect(redact(a)).toEqual([1, "[circular]"]);
+  });
+
+  it("threshold redaction respects normalized 'amount' key (camelCase ignored — only literal amount)", () => {
+    // Spec: only the 'amount' key triggers threshold redaction. Verify normalization
+    // does NOT silently expand to amountCents/Amount/AMOUNT.
+    expect(redact({ Amount: 9_999_99 }, { amountThresholdCents: 100_00 })).toEqual({
+      Amount: "[redacted]",
+    });
+    // amountCents is NOT in scope and should pass through unredacted.
+    expect(redact({ amountCents: 9_999_99 }, { amountThresholdCents: 100_00 })).toEqual({
+      amountCents: 9_999_99,
+    });
+  });
 });
