@@ -71,6 +71,13 @@
       "when": 1782580903450,
       "tag": "0009_tenancy_primitives",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1782581225558,
+      "tag": "0010_tenant_member_constraints",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
+  check,
   date,
   index,
   integer,
@@ -167,13 +168,20 @@ export const tenantMember = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     role: memberRoleEnum("role").notNull(),
     scope: memberScopeEnum("scope").notNull().default("full_read"),
-    invitedBy: uuid("invited_by").references(() => user.id),
+    invitedBy: uuid("invited_by").references(() => user.id, { onDelete: "set null" }),
     invitedAt: timestamp("invited_at", { withTimezone: true }).notNull().defaultNow(),
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.tenantId, t.userId] }),
+    userIdActiveIdx: index("tenant_member_user_id_idx")
+      .on(t.userId)
+      .where(sql`revoked_at IS NULL`),
+    revokedAfterAcceptedChk: check(
+      "tenant_member_revoked_after_accepted_chk",
+      sql`revoked_at IS NULL OR accepted_at IS NULL OR revoked_at >= accepted_at`,
+    ),
   }),
 );
 
