@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test("single-membership user is redirected straight to /", async ({ page }) => {
+test("unauthenticated /tenants redirects to /login", async ({ page }) => {
   await page.goto("/tenants");
-  // Single-membership redirect should land on / (optionally with ?tenant=<id>), not on /tenants
-  await expect(page).not.toHaveURL(/\/tenants/);
+  await expect(page).toHaveURL(/\/login/);
 });
