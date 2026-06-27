@@ -664,8 +664,8 @@ export const auditLogV2 = pgTable(
   "audit_log_v2",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    tenantId: uuid("tenant_id").notNull().references(() => tenant.id),
-    actorUserId: uuid("actor_user_id").references(() => user.id),
+    tenantId: uuid("tenant_id").notNull().references(() => tenant.id, { onDelete: "restrict" }),
+    actorUserId: uuid("actor_user_id").references(() => user.id, { onDelete: "set null" }),
     action: text("action").notNull(),
     targetType: text("target_type"),
     targetId: text("target_id"),
