@@ -42,7 +42,8 @@ export async function appendAudit(db: Db, params: AppendParams): Promise<number>
       .insert(auditLogV2)
       .values({ ...payload, prevHash, thisHash })
       .returning({ id: auditLogV2.id });
-    return row!.id;
+    if (!row) throw new Error("appendAudit: insert returned no row");
+    return row.id;
   });
 }
 

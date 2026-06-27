@@ -22,7 +22,10 @@ const fakeDb = {
 };
 
 describe("appendAudit", () => {
-  beforeEach(() => __resetForTests());
+  beforeEach(() => {
+    __resetForTests();
+    fakeDb.transaction.mockClear();
+  });
 
   it("links to the previous tenant row's hash", async () => {
     await appendAudit(fakeDb as never, {
