@@ -1,6 +1,19 @@
+/**
+ * @deprecated Existing functions (createSession, readSession, etc.) are kept
+ * for one release while route handlers migrate to Supabase Auth. New code
+ * should use getCurrentUser() or createServerClient().auth.getUser() directly.
+ * Delete this file in Phase A.1.
+ */
 import { eq } from "drizzle-orm";
 import type { Db } from "@/lib/db/client";
 import { PRIMARY_USER_ID, session } from "@/lib/db/schema";
+import { createServerClient } from "@/lib/supabase/server";
+
+export async function getCurrentUser() {
+  const supabase = await createServerClient();
+  const { data } = await supabase.auth.getUser();
+  return data.user;
+}
 
 const DEV_BYPASS_TOKEN = "dev-bypass";
 const FAR_FUTURE = new Date("2099-01-01T00:00:00Z");
