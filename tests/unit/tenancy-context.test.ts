@@ -11,7 +11,7 @@ import { resolveTenantId } from "@/lib/tenancy/context";
 
 vi.mock("@/lib/supabase/server", () => ({
   createServerClient: vi.fn().mockResolvedValue({
-    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+    auth: { getSession: vi.fn().mockResolvedValue({ data: { session: null } }) },
   }),
 }));
 

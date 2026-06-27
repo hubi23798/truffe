@@ -6,10 +6,20 @@ export async function resolveTenantId(req: Request): Promise<string> {
     const claims = JSON.parse(headerClaims) as { active_tenant_id?: string };
     if (claims.active_tenant_id) return claims.active_tenant_id;
   }
+  // Decode JWT claims from the active session. The Custom Access Token Hook
+  // injects active_tenant_id as a top-level JWT claim, not into app_metadata.
   const supabase = await createServerClient();
-  const { data } = await supabase.auth.getUser();
-  const id = (data.user?.app_metadata as { active_tenant_id?: string } | null)
-    ?.active_tenant_id;
-  if (!id) throw new Error("active_tenant_id missing from session");
-  return id;
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (token) {
+    try {
+      const payload = JSON.parse(
+        Buffer.from(token.split(".")[1]!, "base64url").toString("utf8"),
+      ) as { active_tenant_id?: string };
+      if (payload.active_tenant_id) return payload.active_tenant_id;
+    } catch {
+      // malformed token — fall through to throw below
+    }
+  }
+  throw new Error("active_tenant_id missing from session");
 }
