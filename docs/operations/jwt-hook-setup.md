@@ -8,7 +8,7 @@ The `jwt-claims` Edge Function runs as a Supabase Custom Access Token Hook. Ever
 2. If `default_tenant_id` is `NULL`, falls back to the user's first active `tenant_member` row (ordered by `invited_at` ascending, non-revoked only).
 3. Injects the resolved value as the `active_tenant_id` claim in the JWT.
 
-Row-level security policies on all tenant-scoped tables use `(auth.jwt() -> 'active_tenant_id')::uuid` to filter rows, so this claim must be present for any authenticated request to succeed.
+Row-level security policies on all tenant-scoped tables use `(auth.jwt() ->> 'active_tenant_id')::uuid` to filter rows, so this claim must be present for any authenticated request to succeed.
 
 ## Deploying the Function
 

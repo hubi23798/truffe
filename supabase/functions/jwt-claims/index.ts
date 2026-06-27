@@ -5,38 +5,62 @@ interface HookPayload {
   claims: Record<string, unknown>;
 }
 
+const admin = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+);
+
 Deno.serve(async (req) => {
-  const payload = (await req.json()) as HookPayload;
-  const admin = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
-
-  // Pick the user's default tenant. Fallback: first active membership.
-  const { data } = await admin
-    .from("user")
-    .select("default_tenant_id")
-    .eq("id", payload.user_id)
-    .maybeSingle();
-
-  let activeTenantId: string | null = data?.default_tenant_id ?? null;
-
-  if (!activeTenantId) {
-    const { data: membership } = await admin
-      .from("tenant_member")
-      .select("tenant_id")
-      .eq("user_id", payload.user_id)
-      .is("revoked_at", null)
-      .order("invited_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    activeTenantId = membership?.tenant_id ?? null;
+  let payload: HookPayload;
+  try {
+    payload = (await req.json()) as HookPayload;
+  } catch {
+    return new Response(JSON.stringify({ error: "invalid body" }), { status: 400 });
   }
 
-  return new Response(
-    JSON.stringify({
-      claims: { ...payload.claims, active_tenant_id: activeTenantId },
-    }),
-    { headers: { "Content-Type": "application/json" } },
-  );
+  if (!payload.user_id || typeof payload.user_id !== "string") {
+    return new Response(JSON.stringify({ error: "missing user_id" }), { status: 400 });
+  }
+
+  try {
+    const { data, error: userErr } = await admin
+      .from("user")
+      .select("default_tenant_id")
+      .eq("id", payload.user_id)
+      .maybeSingle();
+
+    let activeTenantId: string | null = null;
+
+    if (!userErr) {
+      activeTenantId = data?.default_tenant_id ?? null;
+    }
+
+    if (!activeTenantId) {
+      const { data: membership, error: memberErr } = await admin
+        .from("tenant_member")
+        .select("tenant_id")
+        .eq("user_id", payload.user_id)
+        .is("revoked_at", null)
+        .order("invited_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (!memberErr) {
+        activeTenantId = membership?.tenant_id ?? null;
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        claims: { ...payload.claims, active_tenant_id: activeTenantId },
+      }),
+      { headers: { "Content-Type": "application/json" } },
+    );
+  } catch {
+    // On any unexpected error, pass claims through unchanged so login is never denied.
+    return new Response(
+      JSON.stringify({ claims: payload.claims }),
+      { headers: { "Content-Type": "application/json" } },
+    );
+  }
 });

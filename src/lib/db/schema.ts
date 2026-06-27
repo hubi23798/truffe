@@ -148,7 +148,7 @@ export const user = pgTable("user", {
     mode: "number",
   }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  defaultTenantId: uuid("default_tenant_id").references((): AnyPgColumn => tenant.id),
+  defaultTenantId: uuid("default_tenant_id").references((): AnyPgColumn => tenant.id, { onDelete: "set null" }),
 });
 
 export const tenant = pgTable("tenant", {
