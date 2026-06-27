@@ -99,6 +99,13 @@
       "when": 1782582000000,
       "tag": "0013_rls_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1782582100000,
+      "tag": "0014_default_tenant_id",
+      "breakpoints": true
     }
   ]
 }
