@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   tenant,
   tenantMember,
@@ -8,6 +8,12 @@ import {
   memberScopeEnum,
 } from "@/lib/db/schema";
 import { resolveTenantId } from "@/lib/tenancy/context";
+
+vi.mock("@/lib/supabase/server", () => ({
+  createServerClient: vi.fn().mockResolvedValue({
+    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+  }),
+}));
 
 describe("tenancy schema", () => {
   it("exports tenant table", () => {
